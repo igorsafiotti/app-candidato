@@ -1,6 +1,6 @@
-# ResumePilot AI
+# ResumePilot
 
-Sistema inteligente de análise de currículos utilizando IA do Google Gemini.
+Sistema de análise de currículos 100% local, sem dependência de APIs ou chaves externas.
 
 ## 🚀 Instalação
 
@@ -28,34 +28,30 @@ pip install -r requirements.txt
 
 Ou instalar manualmente:
 ```bash
-pip install streamlit PyMuPDF google-generativeai
+pip install streamlit PyMuPDF
 ```
 
 ## 📱 Como Usar
 
-### 1. Obter API Key do Google Gemini
-- Acesse [Google AI Studio](https://makersuite.google.com/app/apikey)
-- Crie uma API Key gratuita
-- Copie a chave para uso no aplicativo
-
-### 2. Executar o aplicativo
+### Executar o aplicativo
 ```bash
 streamlit run app.py
 ```
 
-### 3. Usar o aplicativo
+### Usar o aplicativo
 1. Faça upload do seu currículo em PDF na barra lateral
 2. Cole a descrição da vaga (Job Description) no campo de texto
-3. Insira sua API Key do Google Gemini
-4. Clique em "Analisar Currículo"
+3. Clique em "Analisar Currículo"
 
 ## 🎯 Funcionalidades
 
-- ✅ **Análise ATS**: Verifica se o currículo é compatível com sistemas de tracking
-- ✅ **Palavras-chave**: Identifica termos críticos ausentes da vaga
+- ✅ **Análise ATS Local**: Verifica se o currículo é compatível com sistemas de tracking usando PyMuPDF
+- ✅ **Palavras-chave**: Identifica termos críticos ausentes da vaga através de análise léxica
 - ✅ **Metodologia XYZ**: Sugere reescritas baseadas em resultados mensuráveis
-- ✅ **Filtro de adjetivos**: Detecta autoavaliações subjetivas sem evidência
-- ✅ **Score de prontidão**: Avaliação quantitativa da adequação à vaga
+- ✅ **Filtro de adjetivos**: Detecta autoavaliações subjetivas sem evidência (proativo, dinâmico, etc.)
+- ✅ **Score de prontidão**: Avaliação quantitativa da adequação à vaga (0-10)
+- ✅ **Detecção de métricas**: Identifica números, porcentagens e valores monetários no currículo
+- ✅ **100% Gratuito**: Sem necessidade de chaves de API ou serviços externos
 
 ## 📝 Estrutura do Projeto
 
@@ -66,11 +62,16 @@ Recrutamento/
 └── README.md          # Este arquivo
 ```
 
-## 🔒 Segurança
+## � Como Funciona
 
-A API Key é inserida apenas na interface do aplicativo e não é armazenada. Recomenda-se usar variáveis de ambiente em produção:
-```bash
-set GEMINI_API_KEY=sua_chave_aqui
-```
+O ResumePilot utiliza lógica pura em Python para analisar currículos:
 
-E modificar o código para ler a variável de ambiente em vez do input de texto.
+1. **Extração de Texto**: Usa PyMuPDF para extrair texto de PDFs e avaliar complexidade estrutural
+2. **Análise de Palavras-chave**: Extrai termos relevantes da vaga e verifica presença no currículo
+3. **Detecção de Adjetivos Esponjosos**: Busca clichês comuns em português (proativo, dinâmico, dedicado, etc.)
+4. **Detecção de Métricas**: Usa regex para encontrar porcentagens, valores monetários e números
+5. **Cálculo de Score**: Combina todos os fatores para gerar uma nota de prontidão (0-10)
+
+## 🔒 Privacidade
+
+Todas as análises são feitas localmente no seu navegador. Nenhum dado é enviado para servidores externos.

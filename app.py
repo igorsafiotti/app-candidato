@@ -1,19 +1,19 @@
 import streamlit as st
 import fitz  # PyMuPDF
-import json
-import google.generativeai as genai
-from typing import Dict, Any
+import re
+from typing import Dict, Any, List, Tuple
+import string
 
 # Configuração da página
 st.set_page_config(
-    page_title="ResumePilot AI",
+    page_title="ResumePilot",
     page_icon="📄",
     layout="wide"
 )
 
 # Sidebar para upload e inputs
-st.sidebar.title("ResumePilot AI")
-st.sidebar.markdown("Análise Inteligente de Currículos")
+st.sidebar.title("ResumePilot")
+st.sidebar.markdown("Análise Local de Currículos")
 
 # Upload do PDF
 uploaded_file = st.sidebar.file_uploader(
@@ -29,93 +29,265 @@ job_description = st.sidebar.text_area(
     placeholder="Cole aqui o texto completo da descrição da vaga..."
 )
 
-# Campo para API Key do Gemini
-api_key = st.sidebar.text_input(
-    "🔑 API Key do Google Gemini",
-    type="password",
-    help="Insira sua API Key do Google AI Studio",
-    placeholder="Cole sua API Key aqui..."
-)
-
 # Botão de análise
 analyze_button = st.sidebar.button("Analisar Currículo", type="primary")
 
-def extract_text_from_pdf(pdf_file) -> str:
+# Lista de adjetivos esponjosos em português
+ADJETIVOS_ESPONJOSOS = [
+    "proativo", "proativa", "proativos", "proativas",
+    "dinâmico", "dinâmica", "dinâmicos", "dinâmicas",
+    "dedicado", "dedicada", "dedicados", "dedicadas",
+    "perfeccionista", "perfeccionistas",
+    "visão sistêmica", "visao sistemica",
+    "excelente comunicação", "excelente comunicacao",
+    "criativo", "criativa", "criativos", "criativas",
+    "inovador", "inovadora", "inovadores", "inovadoras",
+    "autodidata", "autodidatas",
+    "flexível", "flexivel", "flexíveis", "flexiveis",
+    "apaixonado", "apaixonada", "apaixonados", "apaixonadas",
+    "entusiasmado", "entusiasmada", "entusiasmados", "entusiasmadas",
+    "motivado", "motivada", "motivados", "motivadas",
+    "comprometido", "comprometida", "comprometidos", "comprometidas",
+    "resiliente", "resilientes",
+    "detalhista", "detalhistas",
+    "organizado", "organizada", "organizados", "organizadas",
+    "comunicativo", "comunicativa", "comunicativos", "comunicativas",
+    "líder", "lider", "líderes", "lideres",
+    "trabalho em equipe", "trabalho em equipa",
+    "focado", "focada", "focados", "focadas",
+    "orientado a resultados", "orientado a resultado",
+    "pensamento crítico", "pensamento critico",
+    "solucionador de problemas", "solucionadora de problemas"
+]
+
+def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
     """
     Extrai todo o texto cru de um arquivo PDF usando PyMuPDF (fitz).
+    Retorna o texto e um dicionário com metadados de parsing.
     """
     try:
         pdf_document = fitz.open(stream=pdf_file.read(), filetype="pdf")
         text = ""
-        for page_num in range(len(pdf_document)):
+        total_pages = len(pdf_document)
+        pages_with_text = 0
+        total_blocks = 0
+        
+        for page_num in range(total_pages):
             page = pdf_document[page_num]
-            text += page.get_text()
+            page_text = page.get_text()
+            text += page_text
+            
+            # Contar blocos de texto para avaliar complexidade
+            blocks = page.get_text("blocks")
+            if blocks:
+                total_blocks += len(blocks)
+            
+            if page_text.strip():
+                pages_with_text += 1
+        
         pdf_document.close()
-        return text
+        
+        # Avaliar risco de parsing
+        parsing_risk = "Baixo"
+        structural_issues = []
+        
+        if pages_with_text < total_pages:
+            parsing_risk = "Médio"
+            structural_issues.append(f"{total_pages - pages_with_text} página(s) sem texto detectado")
+        
+        if total_blocks > total_pages * 10:
+            parsing_risk = "Alto"
+            structural_issues.append("Alta complexidade de blocos de texto (possível uso de múltiplas colunas)")
+        
+        return text, {
+            "risco_parsing": parsing_risk,
+            "falhas_estruturais": structural_issues,
+            "paginas_com_texto": pages_with_text,
+            "total_paginas": total_pages
+        }
     except Exception as e:
         st.error(f"Erro ao extrair texto do PDF: {str(e)}")
-        return ""
+        return "", {"risco_parsing": "Alto", "falhas_estruturais": [str(e)], "paginas_com_texto": 0, "total_paginas": 0}
 
-def analyze_resume_with_gemini(resume_text: str, job_desc: str, api_key: str) -> Dict[str, Any]:
+def extract_keywords_from_job_description(job_desc: str) -> List[str]:
     """
-    Envia o currículo e a descrição da vaga para o Google Gemini e retorna a análise.
-    Tenta usar gemini-2.5-flash, com fallback para gemini-1.5-flash e gemini-flash-latest.
+    Extrai palavras-chave relevantes da descrição da vaga.
+    Filtra stopwords e mantém termos técnicos e substantivos.
     """
-    genai.configure(api_key=api_key)
+    # Stopwords em português (simplificada)
+    stopwords = {
+        "a", "o", "e", "de", "do", "da", "em", "para", "com", "um", "uma", "é", "que",
+        "por", "como", "ou", "se", "não", "na", "no", "as", "os", "mais", "ser", "ter",
+        "estar", "ao", "dos", "das", "à", "pelo", "pela", "sua", "seu", "são", "nos",
+        "nas", "mas", "também", "muito", "já", "ainda", "bem", "sobre", "entre", "todos",
+        "essa", "esse", "essa", "isso", "aquilo", "quem", "qual", "quais", "cujo", "cujos",
+        "neste", "nesta", "nesse", "nessa", "pelos", "pelas", "das", "dos", "me", "te",
+        "lhe", "nos", "vos", "lhes", "minha", "teu", "nossa", "vossa", "meus", "teus",
+        "nossos", "vossos", "minhas", "tuas", "nossas", "vossas", "qualquer", "alguns",
+        "alguma", "algum", "algumas", "pouco", "pouca", "poucos", "poucas", "grande",
+        "grande", "grandes", "grande", "pequeno", "pequena", "pequenos", "pequenas",
+        "outro", "outra", "outros", "outras", "todo", "toda", "todos", "todas", "mesmo",
+        "mesma", "mesmos", "mesmas", "próprio", "própria", "próprios", "próprias", "pode",
+        "podem", "puder", "pudesse", "podia", "podiam", "poder", "poderá", "poderão",
+        "deve", "devem", "dever", "deverá", "deverão", "devia", "deviam", "firme", "forte",
+        "sobre", "sob", "trás", "após", "até", "desde", "durante", "mediante", "segundo",
+        "conforme", "contrário", "favor", "assim", "logo", "depois", "antes", "agora",
+        "hoje", "ontem", "amanhã", "sempre", "nunca", "jamais", "talvez", "quase",
+        "apenas", "somente", "tão", "tão", "quanto", "quão", "onde", "quando", "como",
+        "porque", "porquê", "por que", "pois", "portanto", "entretanto", "contudo",
+        "todavia", "porém", "senão", "caso", "senão", "seja", "sejam", "fosse", "fossem"
+    }
     
-    system_instruction = """Você é o motor de inteligência analítica do ResumePilot AI, atuando como um Auditor Técnico de ATS e Recrutador Corporativo Sênior. Sua função é analisar o currículo em PDF/texto fornecido pelo usuário e compará-lo rigorosamente com a Descrição da Vaga (Job Description) enviada.
-1. DIRETRIZES TÉCNICAS DE PARSING E ESTRUTURA ATS
-- Estrutura e Diagramação: Penalize o uso de múltiplas colunas, caixas de texto flutuantes, tabelas sem borda e elementos gráficos decorativos.
-- Cabeçalhos de Seção: Exija nomenclaturas canônicas (ex: "Histórico Profissional", "Formação Acadêmica").
-- Datas: Verifique se as datas seguem padrões numéricos ou textuais homologados.
-2. FILTRAGEM DE ADJETIVOS ESPONJOSOS
-- Ignore e expurgue qualquer adjetivo de personalidade ou autoavaliação subjetiva não comprovável (ex: "proativo", "criativo"). Adjetivos sem evidência factual têm peso ZERO.
-3. METODOLOGIA 'GOOGLE XYZ' E ORIENTAÇÃO A RESULTADOS
-- Avalie as experiências exigindo a fórmula Google XYZ: "Conquistei [X], medido por [Y], realizando [Z]".
-- Verifique verbos de ação no passado e presença explícita de métricas numéricas.
-4. GESTÃO DE PALAVRAS-CHAVE (SEM KEYWORD STUFFING)
-- Mapeie a ausência de Hard Skills e certificações presentes na Vaga.
-- PROIBIDO INCENTIVAR KEYWORD STUFFING. Recomende a inserção contextual das palavras diretamente nas frases de experiência, com verbos de ação.
-5. FORMATO DA RESPOSTA (JSON)
-Retorne a análise estritamente no formato JSON abaixo, sem marcações markdown como ```json, apenas o objeto: { "score_prontidao": 0.0, "veredito_10_segundos": "Resumo de impacto executivo", "diagnostico_ats": { "risco_parsing": "Baixo/Médio/Alto", "falhas_estruturais": ["Lista de falhas"] }, "analise_palavras_chave": { "termos_ausentes_criticos": ["Termos faltantes"], "orientacao_insercao": "Instrução contextualizada" }, "orientacao_resultados_xyz": { "percentual_itens_com_metricas": 0, "adjetivos_esponjosos_detectados": ["Adjetivos vazios"], "amostra_reescrita_xyz": { "antes": "Frase fraca", "depois": "Frase XYZ reescrita" } } }"""
+    # Converter para minúsculas e remover pontuação
+    text = job_desc.lower()
+    text = text.translate(str.maketrans('', '', string.punctuation))
     
-    prompt = f"""
-Currículo do Candidato:
-{resume_text}
+    # Extrair palavras com pelo menos 3 caracteres
+    words = re.findall(r'\b[a-zá-úà-ãâêîôûäëïöüç]{3,}\b', text)
+    
+    # Filtrar stopwords e termos muito comuns
+    keywords = [word for word in words if word not in stopwords]
+    
+    # Remover duplicatas mantendo ordem
+    seen = set()
+    unique_keywords = []
+    for word in keywords:
+        if word not in seen:
+            seen.add(word)
+            unique_keywords.append(word)
+    
+    return unique_keywords[:50]  # Limitar a 50 palavras-chave mais relevantes
 
-Descrição da Vaga:
-{job_desc}
+def detect_fluffy_adjectives(resume_text: str) -> List[str]:
+    """
+    Detecta adjetivos esponjosos no texto do currículo.
+    """
+    resume_lower = resume_text.lower()
+    found_adjectives = []
+    
+    for adjetivo in ADJETIVOS_ESPONJOSOS:
+        if adjetivo in resume_lower:
+            found_adjectives.append(adjetivo)
+    
+    return found_adjectives
 
-Analise o currículo conforme as diretrizes e retorne o JSON.
-"""
+def detect_metrics(resume_text: str) -> Tuple[int, List[str]]:
+    """
+    Detecta métricas numéricas no texto usando regex.
+    Retorna o número de ocorrências e exemplos encontrados.
+    """
+    # Padrões para métricas: porcentagens, valores monetários, números grandes
+    patterns = [
+        r'\d+%',  # Porcentagens
+        r'R\$\s*\d+',  # Valores em Reais
+        r'\$\s*\d+',  # Valores em dólar
+        r'\d{4,}',  # Números grandes (possíveis anos ou quantidades)
+        r'\d+\s*(mil|milhões|milhoes|milhar)',  # Números com escala
+        r'\d+\.\d+',  # Números decimais
+    ]
     
-    # Lista de modelos para tentar em ordem de preferência
-    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]
+    metrics_found = []
+    total_count = 0
     
-    for model_name in models_to_try:
-        try:
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=system_instruction
-            )
-            
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    response_mime_type="application/json"
-                )
-            )
-            
-            return json.loads(response.text)
-        except Exception as e:
-            if model_name == models_to_try[-1]:
-                # Última tentativa falhou
-                st.error(f"Erro ao chamar a API Gemini: {str(e)}")
-                return None
-            # Tentar próximo modelo
-            continue
+    for pattern in patterns:
+        matches = re.findall(pattern, resume_text, re.IGNORECASE)
+        total_count += len(matches)
+        metrics_found.extend(matches[:5])  # Limitar exemplos
     
-    return None
+    return total_count, metrics_found
+
+def calculate_readiness_score(
+    keywords_found_ratio: float,
+    fluffy_adjectives_count: int,
+    metrics_count: int,
+    parsing_risk: str
+) -> float:
+    """
+    Calcula o score de prontidão (0 a 10) baseado em vários fatores.
+    """
+    score = 10.0
+    
+    # Penalidade por palavras-chave ausentes (até -3 pontos)
+    score -= (1.0 - keywords_found_ratio) * 3
+    
+    # Penalidade por adjetivos esponjosos (até -2 pontos)
+    score -= min(fluffy_adjectives_count * 0.3, 2.0)
+    
+    # Penalidade por falta de métricas (até -2 pontos)
+    if metrics_count == 0:
+        score -= 2.0
+    elif metrics_count < 3:
+        score -= 1.0
+    
+    # Penalidade por risco de parsing alto (até -1 ponto)
+    if parsing_risk == "Alto":
+        score -= 1.0
+    elif parsing_risk == "Médio":
+        score -= 0.5
+    
+    # Garantir que o score fique entre 0 e 10
+    return max(0.0, min(10.0, score))
+
+def analyze_resume_locally(resume_text: str, job_desc: str, pdf_metadata: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Realiza análise local do currículo sem usar IA.
+    """
+    # Extrair palavras-chave da vaga
+    job_keywords = extract_keywords_from_job_description(job_desc)
+    
+    # Verificar quais palavras-chave estão no currículo
+    resume_lower = resume_text.lower()
+    keywords_found = [kw for kw in job_keywords if kw in resume_lower]
+    keywords_missing = [kw for kw in job_keywords if kw not in resume_lower]
+    
+    # Calcular proporção de palavras-chave encontradas
+    keywords_ratio = len(keywords_found) / len(job_keywords) if job_keywords else 0
+    
+    # Detectar adjetivos esponjosos
+    fluffy_adjectives = detect_fluffy_adjectives(resume_text)
+    
+    # Detectar métricas
+    metrics_count, metrics_examples = detect_metrics(resume_text)
+    
+    # Calcular score de prontidão
+    readiness_score = calculate_readiness_score(
+        keywords_ratio,
+        len(fluffy_adjectives),
+        metrics_count,
+        pdf_metadata.get("risco_parsing", "Médio")
+    )
+    
+    # Gerar veredito
+    if readiness_score >= 8:
+        veredito = "Currículo bem alinhado com a vaga. Boa presença de palavras-chave e evidências quantitativas."
+    elif readiness_score >= 5:
+        veredito = "Currículo moderadamente alinhado. Recomenda-se adicionar mais métricas e palavras-chave específicas."
+    else:
+        veredito = "Currículo com baixa aderência à vaga. Necessário revisar estruturalmente e adicionar evidências mensuráveis."
+    
+    return {
+        "score_prontidao": readiness_score / 10.0,  # Normalizado para 0-1
+        "veredito_10_segundos": veredito,
+        "diagnostico_ats": {
+            "risco_parsing": pdf_metadata.get("risco_parsing", "Médio"),
+            "falhas_estruturais": pdf_metadata.get("falhas_estruturais", [])
+        },
+        "analise_palavras_chave": {
+            "termos_ausentes_criticos": keywords_missing[:15],  # Limitar exibição
+            "termos_encontrados": len(keywords_found),
+            "total_termos_vaga": len(job_keywords),
+            "orientacao_insercao": f"Adicione os {len(keywords_missing)} termos ausentes nas seções de experiência e habilidades."
+        },
+        "orientacao_resultados_xyz": {
+            "percentual_itens_com_metricas": min(metrics_count * 10, 100),  # Estimativa simples
+            "adjetivos_esponjosos_detectados": fluffy_adjectives,
+            "total_metricas_encontradas": metrics_count,
+            "amostra_reescrita_xyz": {
+                "antes": "Sou um profissional proativo e dedicado com excelente comunicação.",
+                "depois": "Liderei equipe de 5 pessoas, aumentando produtividade em 30% através de implementação de novos processos."
+            } if fluffy_adjectives else None
+        }
+    }
 
 def display_results(analysis: Dict[str, Any]):
     """
@@ -126,10 +298,11 @@ def display_results(analysis: Dict[str, Any]):
     # Score de Prontidão
     col1, col2, col3 = st.columns(3)
     with col1:
+        score_valor = analysis.get('score_prontidao', 0) * 10
         st.metric(
             label="Score de Prontidão",
-            value=f"{analysis.get('score_prontidao', 0) * 100:.1f}%",
-            delta="Baseado na análise ATS"
+            value=f"{score_valor:.1f}/10",
+            delta="Baseado na análise local"
         )
     
     # Veredito de 10 segundos
@@ -169,9 +342,18 @@ def display_results(analysis: Dict[str, Any]):
     st.subheader("🔑 Análise de Palavras-Chave")
     palavras_chave = analysis.get('analise_palavras_chave', {})
     
+    termos_encontrados = palavras_chave.get('termos_encontrados', 0)
+    total_termos = palavras_chave.get('total_termos_vaga', 0)
+    
+    st.metric(
+        label="Palavras-chave da Vaga",
+        value=f"{termos_encontrados}/{total_termos}",
+        delta=f"{(termos_encontrados/total_termos*100) if total_termos > 0 else 0:.0f}% encontradas"
+    )
+    
     termos_ausentes = palavras_chave.get('termos_ausentes_criticos', [])
     if termos_ausentes:
-        st.write("**Termos Ausentes Críticos:**")
+        st.write(f"**{len(termos_ausentes)} Termos Ausentes Críticos:**")
         for termo in termos_ausentes:
             st.warning(f"• {termo}")
     else:
@@ -188,15 +370,17 @@ def display_results(analysis: Dict[str, Any]):
     xyz = analysis.get('orientacao_resultados_xyz', {})
     
     percentual_metricas = xyz.get('percentual_itens_com_metricas', 0)
+    total_metricas = xyz.get('total_metricas_encontradas', 0)
+    
     st.metric(
-        label="Itens com Métricas",
-        value=f"{percentual_metricas}%",
-        delta="Baseado em fórmula XYZ"
+        label="Métricas Numéricas",
+        value=total_metricas,
+        delta=f"Estimativa: {percentual_metricas}%"
     )
     
     adjetivos = xyz.get('adjetivos_esponjosos_detectados', [])
     if adjetivos:
-        st.write("**Adjetivos Esponjosos Detectados (sem evidência factual):**")
+        st.write(f"**{len(adjetivos)} Adjetivos Esponjosos Detectados (sem evidência factual):**")
         for adjetivo in adjetivos:
             st.warning(f"• {adjetivo}")
     else:
@@ -222,39 +406,36 @@ if analyze_button:
         st.sidebar.error("Por favor, faça upload de um currículo em PDF.")
     elif not job_description:
         st.sidebar.error("Por favor, insira a descrição da vaga.")
-    elif not api_key:
-        st.sidebar.error("Por favor, insira sua API Key do Google Gemini.")
     else:
         # Extrair texto do PDF
         with st.spinner("Extraindo texto do PDF..."):
-            resume_text = extract_text_from_pdf(uploaded_file)
+            resume_text, pdf_metadata = extract_text_from_pdf(uploaded_file)
         
         if resume_text:
-            # Enviar para Gemini
-            with st.spinner("Analisando currículo com Gemini AI..."):
-                analysis = analyze_resume_with_gemini(resume_text, job_description, api_key)
+            # Análise local
+            with st.spinner("Analisando currículo localmente..."):
+                analysis = analyze_resume_locally(resume_text, job_description, pdf_metadata)
             
-            if analysis:
-                # Exibir resultados
-                display_results(analysis)
+            # Exibir resultados
+            display_results(analysis)
 else:
     # Tela inicial
-    st.title("🚀 ResumePilot AI")
+    st.title("🚀 ResumePilot")
     st.markdown("""
-    ### Bem-vindo ao ResumePilot AI!
+    ### Bem-vindo ao ResumePilot!
     
-    Este é um sistema inteligente de análise de currículos que utiliza IA para:
+    Este é um sistema de análise de currículos 100% local que utiliza lógica em Python para:
     
     - ✅ Analisar a estrutura ATS do seu currículo
     - ✅ Identificar palavras-chave críticas ausentes
     - ✅ Detectar adjetivos esponjosos sem evidência factual
     - ✅ Sugerir reescritas usando a metodologia Google XYZ
+    - ✅ Calcular score de prontidão baseado em métricas objetivas
     
     **Como usar:**
     1. Faça upload do seu currículo em PDF na barra lateral
     2. Cole a descrição da vaga que você deseja aplicar
-    3. Insira sua API Key do Google Gemini
-    4. Clique em "Analisar Currículo"
+    3. Clique em "Analisar Currículo"
     
-    📌 **Nota:** Você pode obter sua API Key gratuita em [Google AI Studio](https://makersuite.google.com/app/apikey)
+    📌 **Nota:** Esta versão é 100% gratuita e não requer chaves de API. Toda a análise é feita localmente no seu navegador.
     """)
