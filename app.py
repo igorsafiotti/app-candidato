@@ -59,12 +59,11 @@ def extract_text_from_pdf(pdf_file) -> str:
 def analyze_resume_with_gemini(resume_text: str, job_desc: str, api_key: str) -> Dict[str, Any]:
     """
     Envia o currículo e a descrição da vaga para o Google Gemini e retorna a análise.
+    Tenta usar gemini-2.5-flash, com fallback para gemini-1.5-flash e gemini-flash-latest.
     """
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-pro",
-            system_instruction="""Você é o motor de inteligência analítica do ResumePilot AI, atuando como um Auditor Técnico de ATS e Recrutador Corporativo Sênior. Sua função é analisar o currículo em PDF/texto fornecido pelo usuário e compará-lo rigorosamente com a Descrição da Vaga (Job Description) enviada.
+    genai.configure(api_key=api_key)
+    
+    system_instruction = """Você é o motor de inteligência analítica do ResumePilot AI, atuando como um Auditor Técnico de ATS e Recrutador Corporativo Sênior. Sua função é analisar o currículo em PDF/texto fornecido pelo usuário e compará-lo rigorosamente com a Descrição da Vaga (Job Description) enviada.
 1. DIRETRIZES TÉCNICAS DE PARSING E ESTRUTURA ATS
 - Estrutura e Diagramação: Penalize o uso de múltiplas colunas, caixas de texto flutuantes, tabelas sem borda e elementos gráficos decorativos.
 - Cabeçalhos de Seção: Exija nomenclaturas canônicas (ex: "Histórico Profissional", "Formação Acadêmica").
@@ -79,9 +78,8 @@ def analyze_resume_with_gemini(resume_text: str, job_desc: str, api_key: str) ->
 - PROIBIDO INCENTIVAR KEYWORD STUFFING. Recomende a inserção contextual das palavras diretamente nas frases de experiência, com verbos de ação.
 5. FORMATO DA RESPOSTA (JSON)
 Retorne a análise estritamente no formato JSON abaixo, sem marcações markdown como ```json, apenas o objeto: { "score_prontidao": 0.0, "veredito_10_segundos": "Resumo de impacto executivo", "diagnostico_ats": { "risco_parsing": "Baixo/Médio/Alto", "falhas_estruturais": ["Lista de falhas"] }, "analise_palavras_chave": { "termos_ausentes_criticos": ["Termos faltantes"], "orientacao_insercao": "Instrução contextualizada" }, "orientacao_resultados_xyz": { "percentual_itens_com_metricas": 0, "adjetivos_esponjosos_detectados": ["Adjetivos vazios"], "amostra_reescrita_xyz": { "antes": "Frase fraca", "depois": "Frase XYZ reescrita" } } }"""
-        )
-        
-        prompt = f"""
+    
+    prompt = f"""
 Currículo do Candidato:
 {resume_text}
 
@@ -90,12 +88,34 @@ Descrição da Vaga:
 
 Analise o currículo conforme as diretrizes e retorne o JSON.
 """
-        
-        response = model.generate_content(prompt)
-        return json.loads(response.text)
-    except Exception as e:
-        st.error(f"Erro ao chamar a API Gemini: {str(e)}")
-        return None
+    
+    # Lista de modelos para tentar em ordem de preferência
+    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]
+    
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=system_instruction
+            )
+            
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            
+            return json.loads(response.text)
+        except Exception as e:
+            if model_name == models_to_try[-1]:
+                # Última tentativa falhou
+                st.error(f"Erro ao chamar a API Gemini: {str(e)}")
+                return None
+            # Tentar próximo modelo
+            continue
+    
+    return None
 
 def display_results(analysis: Dict[str, Any]):
     """
