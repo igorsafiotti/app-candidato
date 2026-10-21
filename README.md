@@ -1,6 +1,6 @@
 # ResumePilot
 
-Sistema de análise de currículos 100% local, sem dependência de APIs ou chaves externas.
+Sistema híbrido de análise de currículos combinando análise estrutural local (PyMuPDF) com análise semântica avançada (Google Gemini AI).
 
 ## 🚀 Instalação
 
@@ -28,30 +28,36 @@ pip install -r requirements.txt
 
 Ou instalar manualmente:
 ```bash
-pip install streamlit PyMuPDF
+pip install streamlit PyMuPDF google-generativeai
 ```
 
 ## 📱 Como Usar
 
-### Executar o aplicativo
+### 1. Obter API Key do Google Gemini
+- Acesse [Google AI Studio](https://makersuite.google.com/app/apikey)
+- Crie uma API Key gratuita
+- Copie a chave para uso no aplicativo
+
+### 2. Executar o aplicativo
 ```bash
 streamlit run app.py
 ```
 
-### Usar o aplicativo
+### 3. Usar o aplicativo
 1. Faça upload do seu currículo em PDF na barra lateral
 2. Cole a descrição da vaga (Job Description) no campo de texto
-3. Clique em "Analisar Currículo"
+3. Insira sua API Key do Google Gemini
+4. Clique em "Analisar Currículo"
 
 ## 🎯 Funcionalidades
 
-- ✅ **Análise ATS Local**: Verifica se o currículo é compatível com sistemas de tracking usando PyMuPDF
-- ✅ **Palavras-chave**: Identifica termos críticos ausentes da vaga através de análise léxica
-- ✅ **Metodologia XYZ**: Sugere reescritas baseadas em resultados mensuráveis
-- ✅ **Filtro de adjetivos**: Detecta autoavaliações subjetivas sem evidência (proativo, dinâmico, etc.)
-- ✅ **Score de prontidão**: Avaliação quantitativa da adequação à vaga (0-10)
-- ✅ **Detecção de métricas**: Identifica números, porcentagens e valores monetários no currículo
-- ✅ **100% Gratuito**: Sem necessidade de chaves de API ou serviços externos
+- ✅ **Análise ATS Local (PyMuPDF)**: Avaliação estrutural do PDF sem IA - risco de parsing, complexidade de blocos
+- ✅ **Análise Semântica (Gemini AI)**: Compreensão contextual de Hard Skills e área de atuação
+- ✅ **Extração Inteligente de Hard Skills**: Identifica apenas tecnologias, ferramentas e metodologias reais (ignora verbos e pronomes)
+- ✅ **Compatibilidade Semântica**: Avalia contexto real da área (ex: Gestão de TI vs Engenharia Civil)
+- ✅ **Metodologia Google XYZ**: Reescrita de frases REAIS do currículo com métricas (não texto inventado)
+- ✅ **Filtro de Adjetivos Esponjosos**: Detecta clichês sem evidência factual (proativo, dinâmico, etc.)
+- ✅ **Score Contextual (0-10)**: Nota baseada em compatibilidade semântica real, não apenas coincidência de palavras
 
 ## 📝 Estrutura do Projeto
 
@@ -62,16 +68,26 @@ Recrutamento/
 └── README.md          # Este arquivo
 ```
 
-## � Como Funciona
+## 🔧 Arquitetura Híbrida
 
-O ResumePilot utiliza lógica pura em Python para analisar currículos:
+O ResumePilot combina duas abordagens:
 
-1. **Extração de Texto**: Usa PyMuPDF para extrair texto de PDFs e avaliar complexidade estrutural
-2. **Análise de Palavras-chave**: Extrai termos relevantes da vaga e verifica presença no currículo
-3. **Detecção de Adjetivos Esponjosos**: Busca clichês comuns em português (proativo, dinâmico, dedicado, etc.)
-4. **Detecção de Métricas**: Usa regex para encontrar porcentagens, valores monetários e números
-5. **Cálculo de Score**: Combina todos os fatores para gerar uma nota de prontidão (0-10)
+### 1. Análise Local (PyMuPDF)
+- Extração de texto do PDF
+- Avaliação de risco de parsing (Baixo/Médio/Alto)
+- Detecção de falhas estruturais (múltiplas colunas, blocos complexos)
+- Todas essas análises são feitas localmente, sem enviar dados para a nuvem
+
+### 2. Análise Semântica (Google Gemini)
+- Extração de Hard Skills reais da vaga (tecnologias, metodologias)
+- Análise de compatibilidade semântica de contexto
+- Detecção de adjetivos esponjosos
+- Extração de frase real do currículo para reescrita XYZ
+- Cálculo de score considerando contexto semântico
 
 ## 🔒 Privacidade
 
-Todas as análises são feitas localmente no seu navegador. Nenhum dado é enviado para servidores externos.
+- A análise estrutural do PDF é feita 100% localmente
+- Apenas o texto extraído é enviado ao Gemini para análise semântica
+- A API Key é inserida na interface e não é armazenada
+- Recomenda-se usar variáveis de ambiente em produção para maior segurança
