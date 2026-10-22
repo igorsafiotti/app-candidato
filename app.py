@@ -104,6 +104,7 @@ def analyze_resume_with_gemini(resume_text: str, job_desc: str, api_key: str, pd
 - IGNORE completamente: verbos, pronomes, adjetivos genéricos, termos vagos como "gestão", "projetos", "comunicação" isoladamente.
 - Exemplo de Hard Skills válidas: Python, React, Scrum, AWS, Docker, Jenkins, Agile, Jira, SQL, etc.
 - Exemplo de termos a IGNORAR: "gestão de projetos", "comunicação eficaz", "trabalho em equipe", "liderança", "organização".
+- Seja extremamente rigoroso na correspondência de skills. Se a vaga pede 'Gestão de Projetos' no contexto de Engenharia Civil, NÃO considere correspondência se o currículo possui 'Gestão de Projetos Digitais' ou metodologias ágeis de software. Avalie a semântica, não apenas a palavra isolada.
 
 2. ANÁLISE SEMÂNTICA DE CONTEXTO
 - Avalie o contexto real da área de atuação. Ex: "Gestão de Projetos Digitais" é DIFERENTE de "Gestão de Obras Civis" - não dê pontuação alta apenas por coincidência de palavras.
@@ -113,11 +114,13 @@ def analyze_resume_with_gemini(resume_text: str, job_desc: str, api_key: str, pd
 3. FILTRAGEM DE ADJETIVOS ESPONJOSOS
 - Detecte adjetivos de personalidade subjetiva não comprovável: "proativo", "dinâmico", "dedicado", "perfeccionista", "visão sistêmica", "excelente comunicação", "criativo", "inovador", "autodidata", "flexível", "apaixonado", "entusiasmado", "motivado", "comprometido", "resiliente", "detalhista", "organizado", "comunicativo", "líder", "trabalho em equipe", "focado", "orientado a resultados", "pensamento crítico".
 - Adjetivos sem evidência factual têm peso ZERO.
+- NÃO penalize termos de escopo de negócios (como "parcerias estratégicas" ou "gestão estratégica"), focando apenas em adjetivos de traços de personalidade (ex: "proativo", "perfeccionista").
 
 4. METODOLOGIA 'GOOGLE XYZ' E ORIENTAÇÃO A RESULTADOS
 - Identifique UMA frase REAL do currículo do usuário que contenha adjetivos esponjosos ou falta de métricas.
 - Reescreva essa mesma frase usando a fórmula Google XYZ: "Conquistei [X], medido por [Y], realizando [Z]".
 - A reescrita DEVE ser baseada em uma frase REAL extraída do currículo, NÃO texto inventado.
+- PROIBIDO INVENTAR OU ALUCINAR NÚMEROS. Se a frase original não possuir métricas reais, reescreva a estrutura XYZ utilizando placeholders claros como [INSERIR %], [INSERIR VALOR R$] ou [INSERIR QUANTIDADE], forçando o usuário a preencher com seus dados reais.
 
 5. MÉTRICAS E EVIDÊNCIAS QUANTITATIVAS
 - Detecte presença de métricas numéricas: porcentagens (%), valores monetários (R$, $), números grandes, escala (mil, milhões).
@@ -216,7 +219,7 @@ def display_results(analysis: Dict[str, Any]):
     # Score de Prontidão
     col1, col2, col3 = st.columns(3)
     with col1:
-        score_valor = analysis.get('score_prontidao', 0) * 10
+        score_valor = min(analysis.get('score_prontidao', 0), 10.0)  # Garantir máximo de 10
         st.metric(
             label="Score de Prontidão",
             value=f"{score_valor:.1f}/10",
@@ -225,9 +228,10 @@ def display_results(analysis: Dict[str, Any]):
     
     # Veredito de 10 segundos
     veredito = analysis.get('veredito_10_segundos', 'Não disponível')
-    if analysis.get('score_prontidao', 0) >= 0.8:
+    score_normalizado = min(analysis.get('score_prontidao', 0), 10.0) / 10.0  # Normalizar para 0-1
+    if score_normalizado >= 0.8:
         st.success(f"**Veredito (10 segundos):** {veredito}")
-    elif analysis.get('score_prontidao', 0) >= 0.5:
+    elif score_normalizado >= 0.5:
         st.warning(f"**Veredito (10 segundos):** {veredito}")
     else:
         st.error(f"**Veredito (10 segundos):** {veredito}")
@@ -277,6 +281,14 @@ def display_results(analysis: Dict[str, Any]):
         value=f"{len(hard_skills_encontradas)}/{len(hard_skills_vaga)}",
         delta=f"{(len(hard_skills_encontradas)/len(hard_skills_vaga)*100) if hard_skills_vaga else 0:.0f}% encontradas"
     )
+    
+    # Exibir Hard Skills encontradas
+    if hard_skills_encontradas:
+        st.write(f"**{len(hard_skills_encontradas)} Hard Skills Encontradas:**")
+        for skill in hard_skills_encontradas:
+            st.success(f"✓ {skill}")
+    else:
+        st.warning("⚠ Nenhuma Hard Skill da vaga encontrada no currículo")
     
     if hard_skills_ausentes:
         st.write(f"**{len(hard_skills_ausentes)} Hard Skills Ausentes:**")
