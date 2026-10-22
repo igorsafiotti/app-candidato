@@ -1,7 +1,5 @@
 import streamlit as st
 import fitz  # PyMuPDF
-import json
-import google.generativeai as genai
 from typing import Dict, Any, List, Tuple
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -16,7 +14,7 @@ st.set_page_config(
 
 # Sidebar para upload e inputs
 st.sidebar.title("ResumePilot")
-st.sidebar.markdown("Análise Híbrida de Currículos")
+st.sidebar.markdown("Análise Estatística de Currículos")
 
 # Upload do PDF
 uploaded_file = st.sidebar.file_uploader(
@@ -32,19 +30,8 @@ job_description = st.sidebar.text_area(
     placeholder="Cole aqui o texto completo da descrição da vaga..."
 )
 
-# Campo para API Key do Gemini (apenas para Premium)
-api_key = st.sidebar.text_input(
-    "🔑 API Key do Google Gemini (Opcional - Premium)",
-    type="password",
-    help="Insira sua API Key do Google AI Studio para Análise Profunda",
-    placeholder="Cole sua API Key aqui..."
-)
-
-st.sidebar.divider()
-
-# Botões de análise
-analyze_button_free = st.sidebar.button("⚡ Análise Rápida (Grátis)")
-analyze_button_premium = st.sidebar.button("💎 Análise Profunda (Premium)", type="primary")
+# Botão de análise
+analyze_button = st.sidebar.button("Analisar Currículo", type="primary")
 
 def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
     """
@@ -95,42 +82,20 @@ def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
         st.error(f"Erro ao extrair texto do PDF: {str(e)}")
         return "", {"risco_parsing": "Alto", "falhas_estruturais": [str(e)], "paginas_com_texto": 0, "total_paginas": 0}
 
-def analyze_resume_free(resume_text: str, job_desc: str, pdf_metadata: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str, Any]) -> Dict[str, Any]:
     """
     Realiza análise estatística local do currículo usando TF-IDF.
-    Análise rápida e gratuita sem IA.
+    Motor NLP focado em extração inteligente de palavras-chave.
     """
-    # Stopwords em português (artigos, preposições, pronomes, verbos comuns)
-    stopwords_pt = {
-        "a", "o", "e", "de", "do", "da", "em", "para", "com", "um", "uma", "é", "que",
-        "por", "como", "ou", "se", "não", "na", "no", "as", "os", "mais", "ser", "ter",
-        "estar", "ao", "dos", "das", "à", "pelo", "pela", "sua", "seu", "são", "nos",
-        "nas", "mas", "também", "muito", "já", "ainda", "bem", "sobre", "entre", "todos",
-        "essa", "esse", "isso", "aquilo", "quem", "qual", "quais", "cujo", "cujos",
-        "neste", "nesta", "nesse", "nessa", "pelos", "pelas", "das", "dos", "me", "te",
-        "lhe", "nos", "vos", "lhes", "minha", "teu", "nossa", "vossa", "meus", "teus",
-        "nossos", "vossos", "minhas", "tuas", "nossas", "vossas", "qualquer", "alguns",
-        "alguma", "algum", "algumas", "pouco", "pouca", "poucos", "poucas", "grande",
-        "grandes", "pequeno", "pequena", "pequenos", "pequenas", "outro", "outra",
-        "outros", "outras", "todo", "toda", "todos", "todas", "mesmo", "mesma", "mesmos",
-        "mesmas", "próprio", "própria", "próprios", "próprias", "pode", "podem", "puder",
-        "pudesse", "podia", "podiam", "poder", "poderá", "poderão", "deve", "devem",
-        "dever", "deverá", "deverão", "devia", "deviam", "foi", "foram", "fui", "foi",
-        "fora", "está", "estão", "estou", "estava", "estavam", "esteve", "estejam",
-        "tenho", "tem", "temos", "têm", "tive", "tiver", "tinha", "tinham", "havia",
-        "houver", "haja", "houve", "fazer", "faz", "fazem", "fez", "feita", "feito",
-        "dizer", "diz", "dizem", "disse", "dita", "dito", "ir", "vai", "vão", "vou",
-        "fui", "foi", "foram", "ver", "vê", "veem", "vi", "visto", "dar", "dá", "dão",
-        "dei", "dado", "saber", "sabe", "sabem", "sou", "são", "sabia", "sabiam",
-        "querer", "quer", "querem", "quis", "quero", "poder", "pode", "podem", "pude",
-        "podia", "podiam", "dever", "deve", "devem", "devia", "deviam", "deveria",
-        "precisar", "precisa", "precisam", "precisei", "precisava", "precisavam"
-    }
+    # Stopwords básicas em português
+    pt_stopwords = [
+        'de', 'a', 'o', 'que', 'e', 'do', 'da', 'em', 'um', 'para', 'com', 'não', 'uma', 'os', 'no', 'se', 'na', 'por', 'mais', 'as', 'dos', 'como', 'mas', 'ao', 'ele', 'das', 'seu', 'sua', 'ou', 'quando', 'muito', 'nos', 'já', 'eu', 'também', 'só', 'pelo', 'pela', 'até', 'isso', 'ela', 'entre', 'depois', 'sem', 'mesmo', 'aos', 'seus', 'quem', 'nas', 'me', 'esse', 'eles', 'você', 'essa', 'num', 'nem', 'suas', 'meu', 'às', 'minha', 'numa', 'pelos', 'elas', 'qual', 'nós', 'lhe', 'deles', 'essas', 'esses', 'pelas', 'este', 'dele', 'tu', 'te', 'vocês', 'vos', 'lhes', 'meus', 'minhas', 'teu', 'tua', 'teus', 'tuas', 'nosso', 'nossa', 'nossos', 'nossas', 'dela', 'delas', 'esta', 'estes', 'estas', 'aquele', 'aquela', 'aqueles', 'aquelas', 'isto', 'aquilo'
+    ]
     
     # Vetorização TF-IDF com n-gramas (1 e 2 palavras) e stopwords em português
     try:
         vectorizer = TfidfVectorizer(
-            stop_words=list(stopwords_pt),
+            stop_words=pt_stopwords,
             ngram_range=(1, 2),
             max_features=100
         )
@@ -152,19 +117,20 @@ def analyze_resume_free(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
         similarity = 0.0
         top_15_features = []
     
-    # Converter similaridade (0-1) para score (0-10)
-    score_prontidao = similarity * 10
-    
-    # Verificar presença das Top 15 features no currículo
+    # Verificar presença das Top 15 features no currículo (case-insensitive)
     resume_lower = resume_text.lower()
-    hard_skills_encontradas = [feature for feature in top_15_features if feature in resume_lower]
-    hard_skills_ausentes = [feature for feature in top_15_features if feature not in resume_lower]
+    hard_skills_encontradas = [feature for feature in top_15_features if feature.lower() in resume_lower]
+    hard_skills_ausentes = [feature for feature in top_15_features if feature.lower() not in resume_lower]
+    
+    # Calcular score: 70% proporção das 15 skills + 30% similaridade de cosseno
+    proporcao_skills = len(hard_skills_encontradas) / 15 if top_15_features else 0
+    score_prontidao = (proporcao_skills * 0.7 + similarity * 0.3) * 10
     
     # Veredito baseado no score
     if score_prontidao >= 7:
-        veredito = "Currículo com boa compatibilidade estatística. Análise semântica detalhada disponível na versão Premium."
+        veredito = "Currículo com boa compatibilidade estatística. As palavras-chave da vaga estão bem representadas."
     elif score_prontidao >= 4:
-        veredito = "Currículo com compatibilidade moderada. Recomenda-se análise profunda para avaliação contextual."
+        veredito = "Currículo com compatibilidade moderada. Algumas palavras-chave importantes estão ausentes."
     else:
         veredito = "Currículo com baixa compatibilidade estatística. Considere revisar palavras-chave e estrutura."
     
@@ -179,162 +145,24 @@ def analyze_resume_free(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
             "hard_skills_vaga": top_15_features,  # Top 15 por TF-IDF
             "hard_skills_encontradas": hard_skills_encontradas,
             "hard_skills_ausentes": hard_skills_ausentes,
-            "compatibilidade_semantica": "Não avaliada (versão Free)",
             "orientacao_insercao": f"Adicione os {len(hard_skills_ausentes)} termos ausentes para melhorar compatibilidade."
-        },
-        "orientacao_resultados_xyz": {
-            "percentual_itens_com_metricas": None,
-            "adjetivos_esponjosos_detectados": None,
-            "frase_original_curriculo": None,
-            "amostra_reescrita_xyz": None,
-            "is_premium": False
-        },
-        "is_premium": False
+        }
     }
-
-def analyze_resume_with_gemini(resume_text: str, job_desc: str, api_key: str, pdf_metadata: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Realiza análise semântica do currículo usando Google Gemini.
-    Extrai apenas Hard Skills reais e entende contexto semântico.
-    """
-    genai.configure(api_key=api_key)
-    
-    system_instruction = """Você é o motor de inteligência analítica do ResumePilot, atuando como um Auditor Técnico de ATS e Recrutador Corporativo Sênior. Sua função é analisar o currículo em PDF/texto fornecido pelo usuário e compará-lo rigorosamente com a Descrição da Vaga (Job Description) enviada.
-
-1. EXTRAÇÃO DE HARD SKILLS (APENAS TECNOLOGIAS E METODOLOGIAS)
-- Extraia APENAS Hard Skills reais da vaga: tecnologias, ferramentas, frameworks, linguagens de programação, metodologias específicas, certificações técnicas.
-- IGNORE completamente: verbos, pronomes, adjetivos genéricos, termos vagos como "gestão", "projetos", "comunicação" isoladamente.
-- Exemplo de Hard Skills válidas: Python, React, Scrum, AWS, Docker, Jenkins, Agile, Jira, SQL, etc.
-- Exemplo de termos a IGNORAR: "gestão de projetos", "comunicação eficaz", "trabalho em equipe", "liderança", "organização".
-- Seja extremamente rigoroso na correspondência de skills. Se a vaga pede 'Gestão de Projetos' no contexto de Engenharia Civil, NÃO considere correspondência se o currículo possui 'Gestão de Projetos Digitais' ou metodologias ágeis de software. Avalie a semântica, não apenas a palavra isolada.
-
-2. ANÁLISE SEMÂNTICA DE CONTEXTO
-- Avalie o contexto real da área de atuação. Ex: "Gestão de Projetos Digitais" é DIFERENTE de "Gestão de Obras Civis" - não dê pontuação alta apenas por coincidência de palavras.
-- Verifique se as competências do candidato são semanticamente compatíveis com a área específica da vaga.
-- Um gestor de TI aplicando para Engenharia Civil NÃO deve ter nota alta apenas por ter a palavra "projetos" no currículo.
-
-3. FILTRAGEM DE ADJETIVOS ESPONJOSOS
-- Detecte adjetivos de personalidade subjetiva não comprovável: "proativo", "dinâmico", "dedicado", "perfeccionista", "visão sistêmica", "excelente comunicação", "criativo", "inovador", "autodidata", "flexível", "apaixonado", "entusiasmado", "motivado", "comprometido", "resiliente", "detalhista", "organizado", "comunicativo", "líder", "trabalho em equipe", "focado", "orientado a resultados", "pensamento crítico".
-- Adjetivos sem evidência factual têm peso ZERO.
-- NÃO penalize termos de escopo de negócios (como "parcerias estratégicas" ou "gestão estratégica"), focando apenas em adjetivos de traços de personalidade (ex: "proativo", "perfeccionista").
-
-4. METODOLOGIA 'GOOGLE XYZ' E ORIENTAÇÃO A RESULTADOS
-- Identifique UMA frase REAL do currículo do usuário que contenha adjetivos esponjosos ou falta de métricas.
-- Reescreva essa mesma frase usando a fórmula Google XYZ: "Conquistei [X], medido por [Y], realizando [Z]".
-- A reescrita DEVE ser baseada em uma frase REAL extraída do currículo, NÃO texto inventado.
-- PROIBIDO INVENTAR OU ALUCINAR NÚMEROS. Se a frase original não possuir métricas reais, reescreva a estrutura XYZ utilizando placeholders claros como [INSERIR %], [INSERIR VALOR R$] ou [INSERIR QUANTIDADE], forçando o usuário a preencher com seus dados reais.
-
-5. MÉTRICAS E EVIDÊNCIAS QUANTITATIVAS
-- Detecte presença de métricas numéricas: porcentagens (%), valores monetários (R$, $), números grandes, escala (mil, milhões).
-- Verifique verbos de ação no passado e presença explícita de métricas.
-
-6. SCORE DE PRONTIDÃO (0 a 10)
-- Calcule uma nota baseada em:
-  * Proporção de Hard Skills da vaga presentes no currículo (peso 40%)
-  * Compatibilidade semântica de contexto/área de atuação (peso 30%)
-  * Presença de métricas e evidências quantitativas (peso 20%)
-  * Penalização por adjetivos esponjosos (peso 10%)
-- O score DEVE refletir o contexto semântico real, não apenas coincidência de palavras.
-
-7. FORMATO DA RESPOSTA (JSON)
-Retorne a análise estritamente no formato JSON abaixo, sem marcações markdown como ```json, apenas o objeto:
-{
-  "score_prontidao": 0.0,
-  "veredito_10_segundos": "Resumo de impacto executivo considerando contexto semântico",
-  "diagnostico_ats": {
-    "risco_parsing": "Baixo/Médio/Alto",
-    "falhas_estruturais": ["Lista de falhas"]
-  },
-  "analise_palavras_chave": {
-    "hard_skills_vaga": ["Lista de Hard Skills reais da vaga"],
-    "hard_skills_encontradas": ["Hard Skills encontradas no currículo"],
-    "hard_skills_ausentes": ["Hard Skills ausentes no currículo"],
-    "compatibilidade_semantica": "Alta/Média/Baixa - análise de contexto de área",
-    "orientacao_insercao": "Instrução contextualizada"
-  },
-  "orientacao_resultados_xyz": {
-    "percentual_itens_com_metricas": 0,
-    "adjetivos_esponjosos_detectados": ["Adjetivos vazios"],
-    "frase_original_curriculo": "Frase REAL extraída do currículo",
-    "amostra_reescrita_xyz": {
-      "antes": "Frase original do currículo",
-      "depois": "Frase XYZ reescrita baseada na frase original"
-    }
-  }
-}"""
-    
-    prompt = f"""
-Currículo do Candidato:
-{resume_text}
-
-Descrição da Vaga:
-{job_desc}
-
-Diagnóstico ATS Local (PyMuPDF):
-- Risco de Parsing: {pdf_metadata.get('risco_parsing', 'Médio')}
-- Falhas Estruturais: {pdf_metadata.get('falhas_estruturais', [])}
-
-Analise o currículo conforme as diretrizes acima, focando em:
-1. Extração APENAS de Hard Skills reais (tecnologias, metodologias)
-2. Análise semântica de contexto (área de atuação)
-3. Detecção de adjetivos esponjosos
-4. Extração de uma frase REAL do currículo para reescrita XYZ
-5. Cálculo de score considerando contexto semântico real
-
-Retorne o JSON.
-"""
-    
-    # Lista de modelos para tentar em ordem de preferência
-    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]
-    
-    for model_name in models_to_try:
-        try:
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=system_instruction
-            )
-            
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    response_mime_type="application/json"
-                )
-            )
-            
-            result = json.loads(response.text)
-            result["is_premium"] = True  # Marcar como análise premium
-            return result
-        except Exception as e:
-            if model_name == models_to_try[-1]:
-                # Última tentativa falhou
-                st.error(f"Erro ao chamar a API Gemini: {str(e)}")
-                return None
-            # Tentar próximo modelo
-            continue
-    
-    return None
 
 def display_results(analysis: Dict[str, Any]):
     """
     Exibe os resultados da análise no dashboard do Streamlit.
-    Adapta a exibição baseado em se é análise Free ou Premium.
     """
-    is_premium = analysis.get('is_premium', False)
-    
-    if is_premium:
-        st.header("📊 Resultados da Análise Profunda (Premium)")
-    else:
-        st.header("📊 Resultados da Análise Rápida (Grátis)")
+    st.header("📊 Resultados da Análise")
     
     # Score de Prontidão
     col1, col2, col3 = st.columns(3)
     with col1:
         score_valor = min(analysis.get('score_prontidao', 0), 10.0)  # Garantir máximo de 10
-        delta_text = "Análise semântica com IA" if is_premium else "Análise estatística TF-IDF"
         st.metric(
             label="Score de Prontidão",
             value=f"{score_valor:.1f}/10",
-            delta=delta_text
+            delta="Análise estatística TF-IDF"
         )
     
     # Veredito de 10 segundos
@@ -372,31 +200,21 @@ def display_results(analysis: Dict[str, Any]):
     st.divider()
     
     # Análise de Palavras-Chave (Hard Skills)
-    st.subheader("🔑 Análise de Hard Skills" + (" (Semântica)" if is_premium else " (Estatística)"))
+    st.subheader("🔑 Análise de Hard Skills (TF-IDF)")
     palavras_chave = analysis.get('analise_palavras_chave', {})
     
     hard_skills_vaga = palavras_chave.get('hard_skills_vaga', [])
     hard_skills_encontradas = palavras_chave.get('hard_skills_encontradas', [])
     hard_skills_ausentes = palavras_chave.get('hard_skills_ausentes', [])
-    compatibilidade = palavras_chave.get('compatibilidade_semantica', 'Não avaliada')
     
-    if is_premium:
-        if compatibilidade == "Alta":
-            st.success(f"**Compatibilidade Semântica:** {compatibilidade}")
-        elif compatibilidade == "Média":
-            st.warning(f"**Compatibilidade Semântica:** {compatibilidade}")
-        else:
-            st.error(f"**Compatibilidade Semântica:** {compatibilidade}")
-    else:
-        st.info("⚡ **Versão Grátis:** Análise estatística baseada em TF-IDF. Para avaliação semântica contextual, use a Análise Profunda (Premium).")
-    
+    # Métrica clara: X/15 Hard Skills Encontradas
     st.metric(
         label="Hard Skills da Vaga",
-        value=f"{len(hard_skills_encontradas)}/{len(hard_skills_vaga)}",
-        delta=f"{(len(hard_skills_encontradas)/len(hard_skills_vaga)*100) if hard_skills_vaga else 0:.0f}% encontradas"
+        value=f"{len(hard_skills_encontradas)}/15",
+        delta=f"{(len(hard_skills_encontradas)/15*100):.0f}% encontradas"
     )
     
-    # Exibir Hard Skills encontradas
+    # Exibir TODAS as Hard Skills encontradas
     if hard_skills_encontradas:
         st.write(f"**{len(hard_skills_encontradas)} Hard Skills Encontradas:**")
         for skill in hard_skills_encontradas:
@@ -404,151 +222,55 @@ def display_results(analysis: Dict[str, Any]):
     else:
         st.warning("⚠ Nenhuma Hard Skill da vaga encontrada no currículo")
     
+    # Exibir TODAS as Hard Skills ausentes (sem truncar)
     if hard_skills_ausentes:
         st.write(f"**{len(hard_skills_ausentes)} Hard Skills Ausentes:**")
-        
-        if is_premium:
-            # Versão Premium: exibir todas
-            for skill in hard_skills_ausentes:
-                st.warning(f"• {skill}")
-        else:
-            # Versão Free: exibir apenas 3 e paywall
-            for i, skill in enumerate(hard_skills_ausentes):
-                if i < 3:
-                    st.warning(f"• {skill}")
-                else:
-                    # Interromper e mostrar paywall
-                    restantes = len(hard_skills_ausentes) - 3
-                    st.error(f"🔒 {restantes} palavras-chave críticas ocultas. Assine a Análise Profunda para desbloquear a lista completa e evitar o bloqueio do seu currículo no ATS.")
-                    break
+        for skill in hard_skills_ausentes:
+            st.warning(f"• {skill}")
     else:
         st.success("✅ Todas as Hard Skills da vaga estão presentes")
     
     orientacao = palavras_chave.get('orientacao_insercao', '')
     if orientacao:
         st.info(f"**Orientação para Inserção:** {orientacao}")
-    
-    st.divider()
-    
-    # Orientação Resultados XYZ
-    if is_premium:
-        st.subheader("📈 Orientação de Resultados (Google XYZ)")
-        xyz = analysis.get('orientacao_resultados_xyz', {})
-        
-        percentual_metricas = xyz.get('percentual_itens_com_metricas', 0)
-        st.metric(
-            label="Itens com Métricas",
-            value=f"{percentual_metricas}%",
-            delta="Baseado em fórmula XYZ"
-        )
-        
-        adjetivos = xyz.get('adjetivos_esponjosos_detectados', [])
-        if adjetivos:
-            st.write(f"**{len(adjetivos)} Adjetivos Esponjosos Detectados (sem evidência factual):**")
-            for adjetivo in adjetivos:
-                st.warning(f"• {adjetivo}")
-        else:
-            st.success("✅ Nenhum adjetivo esponjoso detectado")
-        
-        # Frase original do currículo
-        frase_original = xyz.get('frase_original_curriculo', '')
-        if frase_original:
-            st.info(f"**Frase Original do Currículo:** {frase_original}")
-        
-        # Amostra de Reescrita XYZ
-        amostra = xyz.get('amostra_reescrita_xyz', {})
-        if amostra:
-            st.subheader("✨ Amostra de Reescrita XYZ (Baseada em Frase Real)")
-            col_antes, col_depois = st.columns(2)
-            
-            with col_antes:
-                st.markdown("**Antes (Frase Original):**")
-                st.error(amostra.get('antes', ''))
-            
-            with col_depois:
-                st.markdown("**Depois (Frase XYZ):**")
-                st.success(amostra.get('depois', ''))
-    else:
-        # Banner de Upsell para versão Free
-        st.subheader("📈 Orientação de Resultados (Google XYZ)")
-        st.info("🔒 **Recurso Premium:** Identificação de adjetivos esponjosos e reescrita de impacto Google XYZ estão disponíveis apenas na Análise Profunda.")
-        
-        st.markdown("""
-        ### 💎 Recursos Exclusivos Premium:
-        - ✅ Detecção avançada de adjetivos esponjosos com IA
-        - ✅ Reescrita Google XYZ baseada em frases reais do currículo
-        - ✅ Análise semântica contextual de área de atuação
-        - ✅ Extração inteligente de Hard Skills reais
-        - ✅ Compatibilidade semântica (não apenas estatística)
-        
-        Clique em **"💎 Análise Profunda (Premium)"** para acessar todos os recursos.
-        """)
 
 # Lógica principal
-if analyze_button_free or analyze_button_premium:
+if analyze_button:
     if not uploaded_file:
         st.sidebar.error("Por favor, faça upload de um currículo em PDF.")
     elif not job_description:
         st.sidebar.error("Por favor, insira a descrição da vaga.")
-    elif analyze_button_premium and not api_key:
-        st.sidebar.error("Por favor, insira sua API Key do Google Gemini para Análise Profunda.")
     else:
         # Extrair texto do PDF (análise local)
         with st.spinner("Extraindo texto do PDF e avaliando estrutura ATS..."):
             resume_text, pdf_metadata = extract_text_from_pdf(uploaded_file)
         
         if resume_text:
-            if analyze_button_free:
-                # Análise Free (TF-IDF)
-                with st.spinner("Realizando Análise Rápida (TF-IDF)..."):
-                    analysis = analyze_resume_free(resume_text, job_description, pdf_metadata)
-                
-                if analysis:
-                    display_results(analysis)
+            # Análise estatística local
+            with st.spinner("Realizando Análise Estatística (TF-IDF)..."):
+                analysis = analyze_resume_stat(resume_text, job_description, pdf_metadata)
             
-            elif analyze_button_premium:
-                # Análise Premium (Gemini)
-                with st.spinner("Realizando Análise Profunda com Gemini AI..."):
-                    analysis = analyze_resume_with_gemini(resume_text, job_description, api_key, pdf_metadata)
-                
-                if analysis:
-                    display_results(analysis)
+            if analysis:
+                # Exibir resultados
+                display_results(analysis)
 else:
     # Tela inicial
     st.title("🚀 ResumePilot")
     st.markdown("""
-    ### Bem-vindo ao ResumePilot - Modelo Freemium!
+    ### Bem-vindo ao ResumePilot!
     
-    Este é um sistema de análise de currículos com dois níveis de análise:
+    Este é um sistema de análise de currículos baseado em NLP estatístico local:
     
-    ---
-    
-    ### ⚡ Análise Rápida (Grátis)
     - ✅ **Análise ATS Local (PyMuPDF)**: Avaliação estrutural do PDF
-    - ✅ **Análise Estatística (TF-IDF)**: Similaridade de texto básica
-    - ✅ **Extração de Palavras-chave**: Identificação de termos relevantes
-    - ✅ **Score de Prontidão**: Nota baseada em compatibilidade estatística
+    - ✅ **Análise Estatística (TF-IDF)**: Extração inteligente de palavras-chave com n-gramas
+    - ✅ **Termos Compostos**: Captura bigramas como 'gestão financeira' e 'engenharia civil'
+    - ✅ **Score de Prontidão**: Nota baseada em proporção de skills e similaridade de texto
     - ✅ **100% Local**: Rápido, sem API Key, sem custos
-    
-    ---
-    
-    ### 💎 Análise Profunda (Premium)
-    - ✅ **Tudo da versão Grátis** + recursos avançados com IA
-    - ✅ **Análise Semântica (Gemini AI)**: Compreensão contextual de Hard Skills
-    - ✅ **Compatibilidade Real**: Avalia contexto de área (ex: TI vs Engenharia Civil)
-    - ✅ **Detecção de Adjetivos Esponjosos**: Identifica clichês sem evidência
-    - ✅ **Metodologia Google XYZ**: Reescrita de frases reais com métricas
-    - ✅ **Score Contextual**: Nota baseada em semântica, não apenas palavras
-    
-    ---
     
     **Como usar:**
     1. Faça upload do seu currículo em PDF na barra lateral
     2. Cole a descrição da vaga que você deseja aplicar
-    3. Escolha **"⚡ Análise Rápida (Grátis)"** para análise rápida local
-    4. Ou insira sua API Key e clique em **"💎 Análise Profunda (Premium)"** para análise completa
+    3. Clique em "Analisar Currículo"
     
-    📌 **Nota:** Você pode obter sua API Key gratuita em [Google AI Studio](https://makersuite.google.com/app/apikey)
-    
-    🔒 **Privacidade:** A análise estrutural é sempre feita localmente. Apenas a versão Premium envia texto ao Gemini para análise semântica.
+    🔒 **Privacidade:** Toda a análise é feita localmente. Nenhum dado é enviado para servidores externos.
     """)
