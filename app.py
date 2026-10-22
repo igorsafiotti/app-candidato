@@ -4,6 +4,8 @@ import json
 import google.generativeai as genai
 from typing import Dict, Any, List, Tuple
 import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Configuração da página
 st.set_page_config(
@@ -30,16 +32,19 @@ job_description = st.sidebar.text_area(
     placeholder="Cole aqui o texto completo da descrição da vaga..."
 )
 
-# Campo para API Key do Gemini
+# Campo para API Key do Gemini (apenas para Premium)
 api_key = st.sidebar.text_input(
-    "🔑 API Key do Google Gemini",
+    "🔑 API Key do Google Gemini (Opcional - Premium)",
     type="password",
-    help="Insira sua API Key do Google AI Studio",
+    help="Insira sua API Key do Google AI Studio para Análise Profunda",
     placeholder="Cole sua API Key aqui..."
 )
 
-# Botão de análise
-analyze_button = st.sidebar.button("Analisar Currículo", type="primary")
+st.sidebar.divider()
+
+# Botões de análise
+analyze_button_free = st.sidebar.button("⚡ Análise Rápida (Grátis)")
+analyze_button_premium = st.sidebar.button("💎 Análise Profunda (Premium)", type="primary")
 
 def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
     """
@@ -89,6 +94,83 @@ def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
     except Exception as e:
         st.error(f"Erro ao extrair texto do PDF: {str(e)}")
         return "", {"risco_parsing": "Alto", "falhas_estruturais": [str(e)], "paginas_com_texto": 0, "total_paginas": 0}
+
+def analyze_resume_free(resume_text: str, job_desc: str, pdf_metadata: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Realiza análise estatística local do currículo usando TF-IDF.
+    Análise rápida e gratuita sem IA.
+    """
+    # Stopwords básicas em português e inglês
+    stopwords = {
+        "a", "o", "e", "de", "do", "da", "em", "para", "com", "um", "uma", "é", "que",
+        "por", "como", "ou", "se", "não", "na", "no", "as", "os", "mais", "ser", "ter",
+        "estar", "ao", "dos", "das", "à", "pelo", "pela", "sua", "seu", "são", "nos",
+        "nas", "mas", "também", "muito", "já", "ainda", "bem", "sobre", "entre", "todos",
+        "essa", "esse", "isso", "aquilo", "quem", "qual", "quais", "cujo", "cujos",
+        "neste", "nesta", "nesse", "nessa", "pelos", "pelas", "das", "dos", "me", "te",
+        "lhe", "nos", "vos", "lhes", "minha", "teu", "nossa", "vossa", "meus", "teus",
+        "nossos", "vossos", "minhas", "tuas", "nossas", "vossas", "qualquer", "alguns",
+        "alguma", "algum", "algumas", "pouco", "pouca", "poucos", "poucas", "grande",
+        "grandes", "pequeno", "pequena", "pequenos", "pequenas", "outro", "outra",
+        "outros", "outras", "todo", "toda", "todos", "todas", "mesmo", "mesma", "mesmos",
+        "mesmas", "próprio", "própria", "próprios", "próprias", "pode", "podem", "puder",
+        "pudesse", "podia", "podiam", "poder", "poderá", "poderão", "deve", "devem",
+        "dever", "deverá", "deverão", "devia", "deviam", "the", "and", "for", "are",
+        "but", "not", "you", "all", "can", "had", "her", "was", "one", "our", "out",
+        "with", "this", "that", "from", "they", "will", "have", "been", "more", "when"
+    }
+    
+    # Vetorização TF-IDF
+    try:
+        vectorizer = TfidfVectorizer(stop_words='english')
+        tfidf_matrix = vectorizer.fit_transform([resume_text, job_desc])
+        similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+    except:
+        similarity = 0.0
+    
+    # Converter similaridade (0-1) para score (0-10)
+    score_prontidao = similarity * 10
+    
+    # Extração básica de palavras-chave (palavras com mais de 4 letras)
+    job_words = re.findall(r'\b[a-zA-Zá-úÁ-Úà-ãÂ-ÎÔÛâ-îôûä-ïöüçÇ]{5,}\b', job_desc.lower())
+    job_words = [word for word in job_words if word not in stopwords]
+    job_words = list(set(job_words))  # Remover duplicatas
+    
+    resume_lower = resume_text.lower()
+    hard_skills_encontradas = [word for word in job_words if word in resume_lower]
+    hard_skills_ausentes = [word for word in job_words if word not in resume_lower]
+    
+    # Veredito baseado no score
+    if score_prontidao >= 7:
+        veredito = "Currículo com boa compatibilidade estatística. Análise semântica detalhada disponível na versão Premium."
+    elif score_prontidao >= 4:
+        veredito = "Currículo com compatibilidade moderada. Recomenda-se análise profunda para avaliação contextual."
+    else:
+        veredito = "Currículo com baixa compatibilidade estatística. Considere revisar palavras-chave e estrutura."
+    
+    return {
+        "score_prontidao": score_prontidao,
+        "veredito_10_segundos": veredito,
+        "diagnostico_ats": {
+            "risco_parsing": pdf_metadata.get('risco_parsing', 'Médio'),
+            "falhas_estruturais": pdf_metadata.get('falhas_estruturais', [])
+        },
+        "analise_palavras_chave": {
+            "hard_skills_vaga": job_words[:20],  # Limitar a 20
+            "hard_skills_encontradas": hard_skills_encontradas[:20],
+            "hard_skills_ausentes": hard_skills_ausentes[:20],
+            "compatibilidade_semantica": "Não avaliada (versão Free)",
+            "orientacao_insercao": f"Adicione os {len(hard_skills_ausentes)} termos ausentes para melhorar compatibilidade."
+        },
+        "orientacao_resultados_xyz": {
+            "percentual_itens_com_metricas": None,
+            "adjetivos_esponjosos_detectados": None,
+            "frase_original_curriculo": None,
+            "amostra_reescrita_xyz": None,
+            "is_premium": False
+        },
+        "is_premium": False
+    }
 
 def analyze_resume_with_gemini(resume_text: str, job_desc: str, api_key: str, pdf_metadata: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -199,7 +281,9 @@ Retorne o JSON.
                 )
             )
             
-            return json.loads(response.text)
+            result = json.loads(response.text)
+            result["is_premium"] = True  # Marcar como análise premium
+            return result
         except Exception as e:
             if model_name == models_to_try[-1]:
                 # Última tentativa falhou
@@ -213,17 +297,24 @@ Retorne o JSON.
 def display_results(analysis: Dict[str, Any]):
     """
     Exibe os resultados da análise no dashboard do Streamlit.
+    Adapta a exibição baseado em se é análise Free ou Premium.
     """
-    st.header("📊 Resultados da Análise")
+    is_premium = analysis.get('is_premium', False)
+    
+    if is_premium:
+        st.header("📊 Resultados da Análise Profunda (Premium)")
+    else:
+        st.header("📊 Resultados da Análise Rápida (Grátis)")
     
     # Score de Prontidão
     col1, col2, col3 = st.columns(3)
     with col1:
         score_valor = min(analysis.get('score_prontidao', 0), 10.0)  # Garantir máximo de 10
+        delta_text = "Análise semântica com IA" if is_premium else "Análise estatística TF-IDF"
         st.metric(
             label="Score de Prontidão",
             value=f"{score_valor:.1f}/10",
-            delta="Baseado em análise semântica"
+            delta=delta_text
         )
     
     # Veredito de 10 segundos
@@ -261,7 +352,7 @@ def display_results(analysis: Dict[str, Any]):
     st.divider()
     
     # Análise de Palavras-Chave (Hard Skills)
-    st.subheader("🔑 Análise de Hard Skills (Semântica)")
+    st.subheader("🔑 Análise de Hard Skills" + (" (Semântica)" if is_premium else " (Estatística)"))
     palavras_chave = analysis.get('analise_palavras_chave', {})
     
     hard_skills_vaga = palavras_chave.get('hard_skills_vaga', [])
@@ -269,12 +360,15 @@ def display_results(analysis: Dict[str, Any]):
     hard_skills_ausentes = palavras_chave.get('hard_skills_ausentes', [])
     compatibilidade = palavras_chave.get('compatibilidade_semantica', 'Não avaliada')
     
-    if compatibilidade == "Alta":
-        st.success(f"**Compatibilidade Semântica:** {compatibilidade}")
-    elif compatibilidade == "Média":
-        st.warning(f"**Compatibilidade Semântica:** {compatibilidade}")
+    if is_premium:
+        if compatibilidade == "Alta":
+            st.success(f"**Compatibilidade Semântica:** {compatibilidade}")
+        elif compatibilidade == "Média":
+            st.warning(f"**Compatibilidade Semântica:** {compatibilidade}")
+        else:
+            st.error(f"**Compatibilidade Semântica:** {compatibilidade}")
     else:
-        st.error(f"**Compatibilidade Semântica:** {compatibilidade}")
+        st.info("⚡ **Versão Grátis:** Análise estatística baseada em TF-IDF. Para avaliação semântica contextual, use a Análise Profunda (Premium).")
     
     st.metric(
         label="Hard Skills da Vaga",
@@ -304,85 +398,124 @@ def display_results(analysis: Dict[str, Any]):
     st.divider()
     
     # Orientação Resultados XYZ
-    st.subheader("📈 Orientação de Resultados (Google XYZ)")
-    xyz = analysis.get('orientacao_resultados_xyz', {})
-    
-    percentual_metricas = xyz.get('percentual_itens_com_metricas', 0)
-    st.metric(
-        label="Itens com Métricas",
-        value=f"{percentual_metricas}%",
-        delta="Baseado em fórmula XYZ"
-    )
-    
-    adjetivos = xyz.get('adjetivos_esponjosos_detectados', [])
-    if adjetivos:
-        st.write(f"**{len(adjetivos)} Adjetivos Esponjosos Detectados (sem evidência factual):**")
-        for adjetivo in adjetivos:
-            st.warning(f"• {adjetivo}")
+    if is_premium:
+        st.subheader("📈 Orientação de Resultados (Google XYZ)")
+        xyz = analysis.get('orientacao_resultados_xyz', {})
+        
+        percentual_metricas = xyz.get('percentual_itens_com_metricas', 0)
+        st.metric(
+            label="Itens com Métricas",
+            value=f"{percentual_metricas}%",
+            delta="Baseado em fórmula XYZ"
+        )
+        
+        adjetivos = xyz.get('adjetivos_esponjosos_detectados', [])
+        if adjetivos:
+            st.write(f"**{len(adjetivos)} Adjetivos Esponjosos Detectados (sem evidência factual):**")
+            for adjetivo in adjetivos:
+                st.warning(f"• {adjetivo}")
+        else:
+            st.success("✅ Nenhum adjetivo esponjoso detectado")
+        
+        # Frase original do currículo
+        frase_original = xyz.get('frase_original_curriculo', '')
+        if frase_original:
+            st.info(f"**Frase Original do Currículo:** {frase_original}")
+        
+        # Amostra de Reescrita XYZ
+        amostra = xyz.get('amostra_reescrita_xyz', {})
+        if amostra:
+            st.subheader("✨ Amostra de Reescrita XYZ (Baseada em Frase Real)")
+            col_antes, col_depois = st.columns(2)
+            
+            with col_antes:
+                st.markdown("**Antes (Frase Original):**")
+                st.error(amostra.get('antes', ''))
+            
+            with col_depois:
+                st.markdown("**Depois (Frase XYZ):**")
+                st.success(amostra.get('depois', ''))
     else:
-        st.success("✅ Nenhum adjetivo esponjoso detectado")
-    
-    # Frase original do currículo
-    frase_original = xyz.get('frase_original_curriculo', '')
-    if frase_original:
-        st.info(f"**Frase Original do Currículo:** {frase_original}")
-    
-    # Amostra de Reescrita XYZ
-    amostra = xyz.get('amostra_reescrita_xyz', {})
-    if amostra:
-        st.subheader("✨ Amostra de Reescrita XYZ (Baseada em Frase Real)")
-        col_antes, col_depois = st.columns(2)
+        # Banner de Upsell para versão Free
+        st.subheader("📈 Orientação de Resultados (Google XYZ)")
+        st.info("🔒 **Recurso Premium:** Identificação de adjetivos esponjosos e reescrita de impacto Google XYZ estão disponíveis apenas na Análise Profunda.")
         
-        with col_antes:
-            st.markdown("**Antes (Frase Original):**")
-            st.error(amostra.get('antes', ''))
+        st.markdown("""
+        ### 💎 Recursos Exclusivos Premium:
+        - ✅ Detecção avançada de adjetivos esponjosos com IA
+        - ✅ Reescrita Google XYZ baseada em frases reais do currículo
+        - ✅ Análise semântica contextual de área de atuação
+        - ✅ Extração inteligente de Hard Skills reais
+        - ✅ Compatibilidade semântica (não apenas estatística)
         
-        with col_depois:
-            st.markdown("**Depois (Frase XYZ):**")
-            st.success(amostra.get('depois', ''))
+        Clique em **"💎 Análise Profunda (Premium)"** para acessar todos os recursos.
+        """)
 
 # Lógica principal
-if analyze_button:
+if analyze_button_free or analyze_button_premium:
     if not uploaded_file:
         st.sidebar.error("Por favor, faça upload de um currículo em PDF.")
     elif not job_description:
         st.sidebar.error("Por favor, insira a descrição da vaga.")
-    elif not api_key:
-        st.sidebar.error("Por favor, insira sua API Key do Google Gemini.")
+    elif analyze_button_premium and not api_key:
+        st.sidebar.error("Por favor, insira sua API Key do Google Gemini para Análise Profunda.")
     else:
         # Extrair texto do PDF (análise local)
         with st.spinner("Extraindo texto do PDF e avaliando estrutura ATS..."):
             resume_text, pdf_metadata = extract_text_from_pdf(uploaded_file)
         
         if resume_text:
-            # Análise semântica com Gemini
-            with st.spinner("Analisando currículo com Gemini AI (análise semântica)..."):
-                analysis = analyze_resume_with_gemini(resume_text, job_description, api_key, pdf_metadata)
+            if analyze_button_free:
+                # Análise Free (TF-IDF)
+                with st.spinner("Realizando Análise Rápida (TF-IDF)..."):
+                    analysis = analyze_resume_free(resume_text, job_description, pdf_metadata)
+                
+                if analysis:
+                    display_results(analysis)
             
-            if analysis:
-                # Exibir resultados
-                display_results(analysis)
+            elif analyze_button_premium:
+                # Análise Premium (Gemini)
+                with st.spinner("Realizando Análise Profunda com Gemini AI..."):
+                    analysis = analyze_resume_with_gemini(resume_text, job_description, api_key, pdf_metadata)
+                
+                if analysis:
+                    display_results(analysis)
 else:
     # Tela inicial
     st.title("🚀 ResumePilot")
     st.markdown("""
-    ### Bem-vindo ao ResumePilot!
+    ### Bem-vindo ao ResumePilot - Modelo Freemium!
     
-    Este é um sistema híbrido de análise de currículos que combina:
+    Este é um sistema de análise de currículos com dois níveis de análise:
     
-    - ✅ **Análise ATS Local (PyMuPDF)**: Avaliação estrutural do PDF sem IA
-    - ✅ **Análise Semântica (Gemini AI)**: Compreensão contextual de Hard Skills e área de atuação
-    - ✅ **Detecção de Adjetivos Esponjosos**: Identificação de clichês sem evidência factual
-    - ✅ **Metodologia Google XYZ**: Reescrita de frases reais do currículo com métricas
-    - ✅ **Score Contextual**: Nota baseada em compatibilidade semântica real, não apenas palavras-chave
+    ---
+    
+    ### ⚡ Análise Rápida (Grátis)
+    - ✅ **Análise ATS Local (PyMuPDF)**: Avaliação estrutural do PDF
+    - ✅ **Análise Estatística (TF-IDF)**: Similaridade de texto básica
+    - ✅ **Extração de Palavras-chave**: Identificação de termos relevantes
+    - ✅ **Score de Prontidão**: Nota baseada em compatibilidade estatística
+    - ✅ **100% Local**: Rápido, sem API Key, sem custos
+    
+    ---
+    
+    ### 💎 Análise Profunda (Premium)
+    - ✅ **Tudo da versão Grátis** + recursos avançados com IA
+    - ✅ **Análise Semântica (Gemini AI)**: Compreensão contextual de Hard Skills
+    - ✅ **Compatibilidade Real**: Avalia contexto de área (ex: TI vs Engenharia Civil)
+    - ✅ **Detecção de Adjetivos Esponjosos**: Identifica clichês sem evidência
+    - ✅ **Metodologia Google XYZ**: Reescrita de frases reais com métricas
+    - ✅ **Score Contextual**: Nota baseada em semântica, não apenas palavras
+    
+    ---
     
     **Como usar:**
     1. Faça upload do seu currículo em PDF na barra lateral
     2. Cole a descrição da vaga que você deseja aplicar
-    3. Insira sua API Key do Google Gemini
-    4. Clique em "Analisar Currículo"
+    3. Escolha **"⚡ Análise Rápida (Grátis)"** para análise rápida local
+    4. Ou insira sua API Key e clique em **"💎 Análise Profunda (Premium)"** para análise completa
     
     📌 **Nota:** Você pode obter sua API Key gratuita em [Google AI Studio](https://makersuite.google.com/app/apikey)
     
-    🔒 **Privacidade:** A análise estrutural é feita localmente. Apenas o texto é enviado ao Gemini para análise semântica.
+    🔒 **Privacidade:** A análise estrutural é sempre feita localmente. Apenas a versão Premium envia texto ao Gemini para análise semântica.
     """)
