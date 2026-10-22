@@ -100,8 +100,8 @@ def analyze_resume_free(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
     Realiza análise estatística local do currículo usando TF-IDF.
     Análise rápida e gratuita sem IA.
     """
-    # Stopwords básicas em português e inglês
-    stopwords = {
+    # Stopwords em português (artigos, preposições, pronomes, verbos comuns)
+    stopwords_pt = {
         "a", "o", "e", "de", "do", "da", "em", "para", "com", "um", "uma", "é", "que",
         "por", "como", "ou", "se", "não", "na", "no", "as", "os", "mais", "ser", "ter",
         "estar", "ao", "dos", "das", "à", "pelo", "pela", "sua", "seu", "são", "nos",
@@ -115,30 +115,50 @@ def analyze_resume_free(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
         "outros", "outras", "todo", "toda", "todos", "todas", "mesmo", "mesma", "mesmos",
         "mesmas", "próprio", "própria", "próprios", "próprias", "pode", "podem", "puder",
         "pudesse", "podia", "podiam", "poder", "poderá", "poderão", "deve", "devem",
-        "dever", "deverá", "deverão", "devia", "deviam", "the", "and", "for", "are",
-        "but", "not", "you", "all", "can", "had", "her", "was", "one", "our", "out",
-        "with", "this", "that", "from", "they", "will", "have", "been", "more", "when"
+        "dever", "deverá", "deverão", "devia", "deviam", "foi", "foram", "fui", "foi",
+        "fora", "está", "estão", "estou", "estava", "estavam", "esteve", "estejam",
+        "tenho", "tem", "temos", "têm", "tive", "tiver", "tinha", "tinham", "havia",
+        "houver", "haja", "houve", "fazer", "faz", "fazem", "fez", "feita", "feito",
+        "dizer", "diz", "dizem", "disse", "dita", "dito", "ir", "vai", "vão", "vou",
+        "fui", "foi", "foram", "ver", "vê", "veem", "vi", "visto", "dar", "dá", "dão",
+        "dei", "dado", "saber", "sabe", "sabem", "sou", "são", "sabia", "sabiam",
+        "querer", "quer", "querem", "quis", "quero", "poder", "pode", "podem", "pude",
+        "podia", "podiam", "dever", "deve", "devem", "devia", "deviam", "deveria",
+        "precisar", "precisa", "precisam", "precisei", "precisava", "precisavam"
     }
     
-    # Vetorização TF-IDF
+    # Vetorização TF-IDF com n-gramas (1 e 2 palavras) e stopwords em português
     try:
-        vectorizer = TfidfVectorizer(stop_words='english')
+        vectorizer = TfidfVectorizer(
+            stop_words=list(stopwords_pt),
+            ngram_range=(1, 2),
+            max_features=100
+        )
         tfidf_matrix = vectorizer.fit_transform([resume_text, job_desc])
         similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-    except:
+        
+        # Extrair as Top 15 features (palavras/bigramas) com maiores pesos da vaga
+        feature_names = vectorizer.get_feature_names_out()
+        tfidf_scores = tfidf_matrix[1].toarray()[0]  # Scores da vaga (índice 1)
+        
+        # Criar lista de (feature, score) e ordenar por score
+        feature_score_pairs = list(zip(feature_names, tfidf_scores))
+        feature_score_pairs.sort(key=lambda x: x[1], reverse=True)
+        
+        # Top 15 features mais relevantes da vaga
+        top_15_features = [feature for feature, score in feature_score_pairs[:15]]
+        
+    except Exception as e:
         similarity = 0.0
+        top_15_features = []
     
     # Converter similaridade (0-1) para score (0-10)
     score_prontidao = similarity * 10
     
-    # Extração básica de palavras-chave (palavras com mais de 4 letras)
-    job_words = re.findall(r'\b[a-zA-Zá-úÁ-Úà-ãÂ-ÎÔÛâ-îôûä-ïöüçÇ]{5,}\b', job_desc.lower())
-    job_words = [word for word in job_words if word not in stopwords]
-    job_words = list(set(job_words))  # Remover duplicatas
-    
+    # Verificar presença das Top 15 features no currículo
     resume_lower = resume_text.lower()
-    hard_skills_encontradas = [word for word in job_words if word in resume_lower]
-    hard_skills_ausentes = [word for word in job_words if word not in resume_lower]
+    hard_skills_encontradas = [feature for feature in top_15_features if feature in resume_lower]
+    hard_skills_ausentes = [feature for feature in top_15_features if feature not in resume_lower]
     
     # Veredito baseado no score
     if score_prontidao >= 7:
@@ -156,9 +176,9 @@ def analyze_resume_free(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
             "falhas_estruturais": pdf_metadata.get('falhas_estruturais', [])
         },
         "analise_palavras_chave": {
-            "hard_skills_vaga": job_words[:20],  # Limitar a 20
-            "hard_skills_encontradas": hard_skills_encontradas[:20],
-            "hard_skills_ausentes": hard_skills_ausentes[:20],
+            "hard_skills_vaga": top_15_features,  # Top 15 por TF-IDF
+            "hard_skills_encontradas": hard_skills_encontradas,
+            "hard_skills_ausentes": hard_skills_ausentes,
             "compatibilidade_semantica": "Não avaliada (versão Free)",
             "orientacao_insercao": f"Adicione os {len(hard_skills_ausentes)} termos ausentes para melhorar compatibilidade."
         },
@@ -386,8 +406,21 @@ def display_results(analysis: Dict[str, Any]):
     
     if hard_skills_ausentes:
         st.write(f"**{len(hard_skills_ausentes)} Hard Skills Ausentes:**")
-        for skill in hard_skills_ausentes:
-            st.warning(f"• {skill}")
+        
+        if is_premium:
+            # Versão Premium: exibir todas
+            for skill in hard_skills_ausentes:
+                st.warning(f"• {skill}")
+        else:
+            # Versão Free: exibir apenas 3 e paywall
+            for i, skill in enumerate(hard_skills_ausentes):
+                if i < 3:
+                    st.warning(f"• {skill}")
+                else:
+                    # Interromper e mostrar paywall
+                    restantes = len(hard_skills_ausentes) - 3
+                    st.error(f"🔒 {restantes} palavras-chave críticas ocultas. Assine a Análise Profunda para desbloquear a lista completa e evitar o bloqueio do seu currículo no ATS.")
+                    break
     else:
         st.success("✅ Todas as Hard Skills da vaga estão presentes")
     
