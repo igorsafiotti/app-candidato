@@ -1,9 +1,11 @@
 import streamlit as st
 import fitz  # PyMuPDF
+import json
 from typing import Dict, Any, List, Tuple
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from hardskills_database import HARD_SKILLS_DATABASE
 
 # Configuração da página
 st.set_page_config(
@@ -32,6 +34,54 @@ job_description = st.sidebar.text_area(
 
 # Botão de análise
 analyze_button = st.sidebar.button("Analisar Currículo", type="primary")
+
+@st.cache_data
+def load_blacklist_adjetivos() -> Dict[str, Any]:
+    """Carrega a blacklist de adjetivos do arquivo JSON com cache."""
+    try:
+        with open('blacklist_adjetivos.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        st.warning("Arquivo blacklist_adjetivos.json não encontrado. Usando lista vazia.")
+        return {"categorias": []}
+    except json.JSONDecodeError as e:
+        st.error(f"Erro ao ler blacklist_adjetivos.json: {str(e)}")
+        return {"categorias": []}
+    except Exception as e:
+        st.error(f"Erro inesperado ao carregar blacklist: {str(e)}")
+        return {"categorias": []}
+
+@st.cache_data
+def load_taxonomy() -> Dict[str, Any]:
+    """Carrega a taxonomia do arquivo JSON com cache."""
+    try:
+        with open('taxonomy.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        st.warning("Arquivo taxonomy.json não encontrado. Algumas funcionalidades podem estar limitadas.")
+        return {"areas": [], "seniority_modifiers": []}
+    except json.JSONDecodeError as e:
+        st.error(f"Erro ao ler taxonomy.json: {str(e)}")
+        return {"areas": [], "seniority_modifiers": []}
+    except Exception as e:
+        st.error(f"Erro inesperado ao carregar taxonomia: {str(e)}")
+        return {"areas": [], "seniority_modifiers": []}
+
+@st.cache_data
+def load_credentials_database() -> Dict[str, Any]:
+    """Carrega a base de dados de credenciais do arquivo JSON com cache."""
+    try:
+        with open('credentials_database.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        st.warning("Arquivo credentials_database.json não encontrado. Algumas funcionalidades podem estar limitadas.")
+        return {}
+    except json.JSONDecodeError as e:
+        st.error(f"Erro ao ler credentials_database.json: {str(e)}")
+        return {}
+    except Exception as e:
+        st.error(f"Erro inesperado ao carregar credenciais: {str(e)}")
+        return {}
 
 def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
     """
@@ -82,6 +132,28 @@ def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
         st.error(f"Erro ao extrair texto do PDF: {str(e)}")
         return "", {"risco_parsing": "Alto", "falhas_estruturais": [str(e)], "paginas_com_texto": 0, "total_paginas": 0}
 
+def detect_fluffy_adjectives(resume_text: str, blacklist: Dict[str, Any]) -> List[str]:
+    """
+    Detecta adjetivos esponjosos no currículo usando a blacklist.
+    """
+    found_adjectives = []
+    resume_lower = resume_text.lower()
+    
+    for categoria in blacklist.get("categorias", []):
+        for termo_data in categoria.get("termos", []):
+            termo = termo_data.get("termo", "").lower()
+            variacoes = [v.lower() for v in termo_data.get("variacoes", [])]
+            
+            # Verificar termo principal e variações
+            if termo in resume_lower:
+                found_adjectives.append(termo)
+            
+            for variacao in variacoes:
+                if variacao in resume_lower:
+                    found_adjectives.append(variacao)
+    
+    return list(set(found_adjectives))  # Remover duplicatas
+
 def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str, Any]) -> Dict[str, Any]:
     """
     Realiza análise estatística local do currículo usando TF-IDF.
@@ -122,6 +194,13 @@ def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
     hard_skills_encontradas = [feature for feature in top_15_features if feature.lower() in resume_lower]
     hard_skills_ausentes = [feature for feature in top_15_features if feature.lower() not in resume_lower]
     
+    # Carregar e usar HARD_SKILLS_DATABASE
+    hard_skills_db_matches = []
+    resume_lower = resume_text.lower()
+    for skill in HARD_SKILLS_DATABASE:
+        if skill.lower() in resume_lower:
+            hard_skills_db_matches.append(skill)
+    
     # Calcular score: 70% proporção das 15 skills + 30% similaridade de cosseno
     proporcao_skills = len(hard_skills_encontradas) / 15 if top_15_features else 0
     score_prontidao = (proporcao_skills * 0.7 + similarity * 0.3) * 10
@@ -145,11 +224,12 @@ def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
             "hard_skills_vaga": top_15_features,  # Top 15 por TF-IDF
             "hard_skills_encontradas": hard_skills_encontradas,
             "hard_skills_ausentes": hard_skills_ausentes,
+            "hard_skills_db_matches": hard_skills_db_matches,  # Skills da database encontradas
             "orientacao_insercao": f"Adicione os {len(hard_skills_ausentes)} termos ausentes para melhorar compatibilidade."
         }
     }
 
-def display_results(analysis: Dict[str, Any]):
+def display_results(analysis: Dict[str, Any], adjetivos_detectados: List[str]):
     """
     Exibe os resultados da análise no dashboard do Streamlit.
     """
@@ -206,6 +286,7 @@ def display_results(analysis: Dict[str, Any]):
     hard_skills_vaga = palavras_chave.get('hard_skills_vaga', [])
     hard_skills_encontradas = palavras_chave.get('hard_skills_encontradas', [])
     hard_skills_ausentes = palavras_chave.get('hard_skills_ausentes', [])
+    hard_skills_db_matches = palavras_chave.get('hard_skills_db_matches', [])
     
     # Métrica clara: X/15 Hard Skills Encontradas
     st.metric(
@@ -230,9 +311,29 @@ def display_results(analysis: Dict[str, Any]):
     else:
         st.success("✅ Todas as Hard Skills da vaga estão presentes")
     
+    # Exibir skills da database local encontradas
+    if hard_skills_db_matches:
+        st.write(f"**{len(hard_skills_db_matches)} Skills da Database Local:**")
+        for skill in hard_skills_db_matches[:20]:  # Limitar a 20 para não poluir
+            st.info(f"📚 {skill}")
+        if len(hard_skills_db_matches) > 20:
+            st.info(f"...e mais {len(hard_skills_db_matches) - 20} skills")
+    
     orientacao = palavras_chave.get('orientacao_insercao', '')
     if orientacao:
         st.info(f"**Orientação para Inserção:** {orientacao}")
+    
+    st.divider()
+    
+    # Análise de Adjetivos Esponjosos
+    st.subheader("⚠️ Análise de Adjetivos Esponjosos")
+    if adjetivos_detectados:
+        st.write(f"**{len(adjetivos_detectados)} Adjetivos Esponjosos Detectados:**")
+        for adjetivo in adjetivos_detectados:
+            st.warning(f"• {adjetivo}")
+        st.info("💡 **Dica:** Substitua adjetivos genéricos por exemplos concretos de ações e resultados.")
+    else:
+        st.success("✅ Nenhum adjetivo esponjoso detectado")
 
 # Lógica principal
 if analyze_button:
@@ -241,18 +342,26 @@ if analyze_button:
     elif not job_description:
         st.sidebar.error("Por favor, insira a descrição da vaga.")
     else:
+        # Carregar bases de dados
+        blacklist = load_blacklist_adjetivos()
+        taxonomy = load_taxonomy()
+        credentials = load_credentials_database()
+        
         # Extrair texto do PDF (análise local)
         with st.spinner("Extraindo texto do PDF e avaliando estrutura ATS..."):
             resume_text, pdf_metadata = extract_text_from_pdf(uploaded_file)
         
         if resume_text:
+            # Detectar adjetivos esponjosos
+            adjetivos_detectados = detect_fluffy_adjectives(resume_text, blacklist)
+            
             # Análise estatística local
             with st.spinner("Realizando Análise Estatística (TF-IDF)..."):
                 analysis = analyze_resume_stat(resume_text, job_description, pdf_metadata)
             
             if analysis:
                 # Exibir resultados
-                display_results(analysis)
+                display_results(analysis, adjetivos_detectados)
 else:
     # Tela inicial
     st.title("🚀 ResumePilot")
@@ -263,6 +372,8 @@ else:
     
     - ✅ **Análise ATS Local (PyMuPDF)**: Avaliação estrutural do PDF
     - ✅ **Análise Estatística (TF-IDF)**: Extração inteligente de palavras-chave com n-gramas
+    - ✅ **Database Local**: Cross-check com base de Hard Skills (1000+ termos)
+    - ✅ **Blacklist de Adjetivos**: Detecção de clichês e termos esponjosos
     - ✅ **Termos Compostos**: Captura bigramas como 'gestão financeira' e 'engenharia civil'
     - ✅ **Score de Prontidão**: Nota baseada em proporção de skills e similaridade de texto
     - ✅ **100% Local**: Rápido, sem API Key, sem custos
