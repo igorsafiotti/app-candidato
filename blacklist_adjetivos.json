@@ -1,0 +1,150 @@
+{
+  "versao_base": "1.1-prod-agnostic",
+  "descricao": "Base de dados de termos (buzzwords e adjetivos esponjosos) para sistemas ATS de triagem de currículos, focada na substituição por evidências factuais, métricas e resultados de negócio aplicáveis a qualquer setor corporativo.",
+  "excecoes_contextuais": [
+    {
+      "termo_base": "autodidata",
+      "condicao_excecao": "Se o termo estiver acompanhado de evidências factuais imediatas no mesmo bloco de texto (ex: links para portfólio, repositórios, badges de certificações reconhecidas, artigos técnicos publicados ou projetos próprios), o sistema ATS deve ignorar o alerta, pois deixa de ser uma autoavaliação vazia e passa a ser respaldado por comprovação prática."
+    }
+  ],
+  "categorias": [
+    {
+      "nome": "Traços de Personalidade Subjetivos",
+      "descricao": "Adjetivos focados em atributos de caráter ou comportamento que não possuem métrica de validação objetiva no ambiente de trabalho.",
+      "termos": [
+        {
+          "termo": "proativo",
+          "variacoes": ["proativa", "proativos", "proativas"],
+          "justificativa": "Afirmação genérica de iniciativa sem demonstrar um caso prático onde a atitude evitou um problema ou otimizou um processo.",
+          "substituicao_sugerida": "Substituir por um exemplo de ação autônoma, como a identificação e correção de um gargalo operacional ou implementação de melhorias sem requerer supervisão direta."
+        },
+        {
+          "termo": "dinâmico",
+          "variacoes": ["dinâmica", "dinâmicos", "dinâmicas"],
+          "justificativa": "Termo vago que tenta descrever flexibilidade ou rapidez de entrega sem dados de volume ou complexidade de contexto.",
+          "substituicao_sugerida": "Substituir por métricas de agilidade de entrega, volume de demandas geridas ou capacidade de lidar com múltiplos projetos simultâneos com prazos estritos."
+        },
+        {
+          "termo": "dedicado",
+          "variacoes": ["dedicada", "dedicados", "dedicadas", "comprometido", "comprometida", "comprometidos", "comprometidas"],
+          "justificativa": "O comprometimento é esperado de qualquer profissional; o termo não quantifica o esforço nem o impacto gerado pelo trabalho.",
+          "substituicao_sugerida": "Substituir por histórico de entregas consistentes, cumprimento estrito de SLAs ou tempo de retenção e evolução em projetos de alta complexidade."
+        },
+        {
+          "termo": "perfeccionista",
+          "variacoes": ["perfeccionistas"],
+          "justificativa": "Geralmente usado como falso defeito ou elogio vago à qualidade, sem métricas de controle de qualidade ou redução de falhas.",
+          "substituicao_sugerida": "Substituir por índices concretos de excelência operacional, como auditorias aprovadas sem ressalvas, baixíssima taxa de erro ou índices de satisfação de entrega."
+        },
+        {
+          "termo": "resiliente",
+          "variacoes": ["resilientes"],
+          "justificativa": "Substantivo corporativo genérico que descreve a capacidade de lidar com pressão ou falhas sem detalhar o cenário adverso superado.",
+          "substituicao_sugerida": "Substituir pela descrição de um cenário adverso ou crise superada (ex: atuação em planos de contingência, reestruturação de rotas críticas ou recuperação de contas/projetos em risco)."
+        },
+        {
+          "termo": "workaholic",
+          "variacoes": ["workaholics"],
+          "justificativa": "Termo informal e subjetivo que romantiza excesso de carga horária sem correlacionar com entrega de valor real.",
+          "substituicao_sugerida": "Substituir por dados concretos de produtividade e eficiência, como volume de entregas concluídas ou otimização de fluxos de trabalho."
+        },
+        {
+          "termo": "trabalhador",
+          "variacoes": ["trabalhadora", "trabalhadores", "trabalhadoras"],
+          "justificativa": "Atributo básico inerente à atividade profissional que não diferencia o candidato tecnicamente.",
+          "substituicao_sugerida": "Substituir por entregas de grande porte, complexidade gerencial resolvida ou prêmios e reconhecimentos profissionais recebidos."
+        },
+        {
+          "termo": "responsável",
+          "variacoes": ["responsáveis"],
+          "justificativa": "Indica deveres cotidianos básicos esperados do cargo, sem destacar realizações ou escopo de responsabilidade real.",
+          "substituicao_sugerida": "Substituir pelo escopo direto de liderança, tamanho do orçamento gerenciado ou criticidade dos ativos sob sua tutela."
+        },
+        {
+          "termo": "flexível",
+          "variacoes": ["flexíveis"],
+          "justificativa": "Vago quanto à adaptabilidade a novas metodologias, ferramentas ou mudanças de escopo de projeto.",
+          "substituicao_sugerida": "Substituir por exemplos de transição rápida entre modelos operacionais diferentes ou adaptação a mudanças estruturais de escopo com prazos cumpridos."
+        }
+      ]
+    },
+    {
+      "nome": "Clichês de Motivação e Atitude",
+      "descricao": "Expressões centradas no entusiasmo do candidato que não fornecem dados sobre competência técnica ou entregas.",
+      "termos": [
+        {
+          "termo": "visão sistêmica",
+          "variacoes": ["visão global", "visão holística"],
+          "justificativa": "Clichê corporativo que tenta expressar entendimento arquitetural ou de negócios sem citar quais camadas ou domínios o candidato domina.",
+          "substituicao_sugerida": "Substituir pela citação de projetos de ponta a ponta desenhados, integração entre áreas multidisciplinares ou alinhamento estratégico entre negócios e operação."
+        },
+        {
+          "termo": "autodidata",
+          "variacoes": ["autodidatas"],
+          "justificativa": "Autoafirmação de aprendizado sem comprovação de autonomia através de projetos, certificações ou contribuições reais (sujeito à exceção contextual).",
+          "substituicao_sugerida": "Substituir por listagem de competências aprendidas por conta própria e aplicadas na prática, acompanhadas de certificações ou comprovações."
+        },
+        {
+          "termo": "focado em resultados",
+          "variacoes": ["focada em resultados", "orientado a resultados", "orientada a resultados", "resultado-centrado"],
+          "justificativa": "Afirmação redundante que não aponta quais foram os resultados obtidos nem as métricas de negócio impactadas.",
+          "substituicao_sugerida": "Substituir por KPIs claros (ex: aumento de margem de lucro, redução de custos operacionais, aceleração de prazos ou expansão de receita)."
+        },
+        {
+          "termo": "apaixonado",
+          "variacoes": ["apaixonada", "apaixonados", "apaixonadas", "fanático por tecnologia", "tech lover"],
+          "justificativa": "Sentimento pessoal subjetivo que não serve como indicador de habilidade, senioridade ou entrega.",
+          "substituicao_sugerida": "Substituir por evidências de engajamento prático, como produção de artigos especializados, palestras ministradas ou participação ativa em comunidades profissionais."
+        },
+        {
+          "termo": "determinado",
+          "variacoes": ["determinada", "determinados", "determinadas"],
+          "justificativa": "Subjetividade sobre persistência que carece de contexto prático de desafio superado.",
+          "substituicao_sugerida": "Substituir por metas agressivas alcançadas ou resolução de problemas complexos de longa data."
+        },
+        {
+          "termo": "criativo",
+          "variacoes": ["criativa", "criativos", "criativas", "inovador", "inovadora", "inovadores", "inovadoras"],
+          "justificativa": "Uso excessivo sem apontar a inovação de processo, produto ou método gerada.",
+          "substituicao_sugerida": "Substituir por patentes, criação de novas metodologias internas adotadas pela empresa ou otimização drástica de fluxos legados."
+        },
+        {
+          "termo": "multitarefas",
+          "variacoes": ["multitask", "multitasking"],
+          "justificativa": "Geralmente associado à perda de foco; o ideal é demonstrar gestão organizada de prioridades e entregas lineares.",
+          "substituicao_sugerida": "Substituir por exemplos de gestão de múltiplos projetos concorrentes utilizando ferramentas de controle e metodologias estruturadas."
+        }
+      ]
+    },
+    {
+      "nome": "Expressões de Autoavaliação Vaga",
+      "descricao": "Modos vagos de qualificar competências interpessoais ou organizacionais sem validação por terceiros ou métricas.",
+      "termos": [
+        {
+          "termo": "excelente comunicação",
+          "variacoes": ["ótima comunicação", "boa comunicação", "habilidades de comunicação"],
+          "justificativa": "Habilidade declarada sem contexto sobre com quem ou para quem a comunicação foi efetiva (ex: clientes, diretoria, equipes operacionais).",
+          "substituicao_sugerida": "Substituir por exemplos de facilitação de reuniões executivas, condução de negociações complexas, redação de manuais técnicos/operacionais ou apresentações para stakeholders."
+        },
+        {
+          "termo": "organizado",
+          "variacoes": ["organizada", "organizados", "organizadas"],
+          "justificativa": "Adjetivo pessoal que não comprova estruturação de processos, bases de dados ou gestão de tarefas.",
+          "substituicao_sugerida": "Substituir por práticas metodológicas adotadas, como rigor em documentação corporativa, padronização de rotinas ou estruturação de fluxos de trabalho."
+        },
+        {
+          "termo": "team player",
+          "variacoes": ["jogador de equipe", "espírito de equipe"],
+          "justificativa": "Expressão clichê corporativa que não especifica como o candidato colabora com o time.",
+          "substituicao_sugerida": "Substituir por menção a mentoria de profissionais juniores, cooperação em frentes cruzadas ou suporte ativo a squads e departamentos multidisciplinares."
+        },
+        {
+          "termo": "go-getter",
+          "variacoes": ["self-starter", "fazedor"],
+          "justificativa": "Termos de gíria corporativa estrangeira vazios de contexto prático e métricas de entrega.",
+          "substituicao_sugerida": "Substituir por liderança de iniciativas do zero (projetos greenfield) ou autonomia na concepção e entrega de novos projetos."
+        }
+      ]
+    }
+  ]
+}

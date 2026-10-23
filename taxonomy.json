@@ -1,0 +1,397 @@
+{
+  "taxonomy_version": "3.1.0-prod-optimized",
+  "target_market": "Brasil / Mercado Lusófono",
+  "areas": [
+    {
+      "area_id": "TECH_ENG",
+      "area_name": "Tecnologia e Engenharia de Software",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_TECH_001",
+          "canonical_title": "Software Engineer",
+          "canonical_title_pt": "Engenheiro de Software",
+          "department": "Tecnologia",
+          "synonyms": [
+            "Desenvolvedor de Software",
+            "Programador",
+            "Software Developer",
+            "Dev",
+            "Engenheiro de Sistemas",
+            "Systems Engineer",
+            "Engenheiro de Desenvolvimento de Software",
+            "Desenvolvedor de Sistemas"
+          ],
+          "abbreviations": ["SE", "SWE", "DEV"],
+          "related_titles": [
+            {
+              "title": "Arquiteto de Software",
+              "equivalence_type": "parcial",
+              "weight_modifier": 0.70,
+              "rationale": "Escopo de design e decisão técnica avançada superior à execução padrão de engenharia."
+            },
+            {
+              "title": "Tech Lead",
+              "equivalence_type": "parcial",
+              "weight_modifier": 0.80,
+              "rationale": "Mesmo núcleo técnico, mas acumula liderança direta sobre o time e decisões de arquitetura."
+            }
+          ],
+          "equivalence_pairs": [
+            {
+              "matched_title": "Programador",
+              "equivalent_to": "Engenheiro de Software",
+              "type": "parcial",
+              "score": 0.90
+            }
+          ]
+        },
+        {
+          "canonical_id": "ROLES_TECH_002",
+          "canonical_title": "Front-End Engineer",
+          "canonical_title_pt": "Desenvolvedor Front-End",
+          "department": "Tecnologia",
+          "synonyms": [
+            "Front-End Developer",
+            "Desenvolvedor Web Front-End",
+            "Engenheiro Front-End",
+            "UI Developer",
+            "Desenvolvedor Frontend",
+            "Web Developer Front-End"
+          ],
+          "abbreviations": ["FE", "FED"],
+          "related_titles": [
+            {
+              "title": "Full-Stack Engineer",
+              "equivalence_type": "parcial",
+              "weight_modifier": 0.75,
+              "rationale": "Abrange o front-end, mas inclui forte competência em back-end."
+            }
+          ],
+          "equivalence_pairs": []
+        }
+      ]
+    },
+    {
+      "area_id": "PROD_MGMT",
+      "area_name": "Produto e Gestão",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_PROD_001",
+          "canonical_title": "Product Manager",
+          "canonical_title_pt": "Gerente de Produto",
+          "department": "Produto",
+          "synonyms": [
+            "Gerente de Produto",
+            "PM Digital",
+            "Gerente de Produto de Tecnologia"
+          ],
+          "abbreviations": ["PM"],
+          "related_titles": [
+            {
+              "title": "Product Owner",
+              "equivalence_type": "parcial",
+              "weight_modifier": 0.80,
+              "rationale": "No Brasil há sobreposição de mercado; estruturalmente o PO foca em backlog e o PM em estratégia de negócio."
+            }
+          ],
+          "equivalence_pairs": []
+        },
+        {
+          "canonical_id": "ROLES_PROD_002",
+          "canonical_title": "Product Owner",
+          "canonical_title_pt": "Dono de Produto",
+          "department": "Produto",
+          "synonyms": [
+            "PO",
+            "Agile Product Owner",
+            "Product Owner de Sistema"
+          ],
+          "abbreviations": ["PO"],
+          "related_titles": [],
+          "equivalence_pairs": []
+        }
+      ]
+    },
+    {
+      "area_id": "DATA_AI",
+      "area_name": "Dados e Inteligência Artificial",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_DATA_001",
+          "canonical_title": "Data Scientist",
+          "canonical_title_pt": "Cientista de Dados",
+          "department": "Dados",
+          "synonyms": [
+            "Cientista de Dados",
+            "AI/ML Researcher",
+            "Machine Learning Scientist",
+            "Cientista de Machine Learning"
+          ],
+          "abbreviations": ["DS", "ML"],
+          "related_titles": [
+            {
+              "title": "Data Analyst",
+              "equivalence_type": "parcial",
+              "weight_modifier": 0.60,
+              "rationale": "Foco em visualização e estatística descritiva, sem criação avançada de modelos preditivos."
+            }
+          ],
+          "equivalence_pairs": [
+            {
+              "matched_title": "Data Analyst",
+              "equivalent_to": "Cientista de Dados",
+              "type": "parcial",
+              "score": 0.60
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "area_id": "MARKETING_GROWTH",
+      "area_name": "Marketing e Growth",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_MKT_001",
+          "canonical_title": "Growth Manager",
+          "canonical_title_pt": "Gerente de Growth",
+          "department": "Marketing",
+          "synonyms": [
+            "Growth Marketer",
+            "Analista de Growth",
+            "Growth Hacker",
+            "Gerente de Crescimento"
+          ],
+          "abbreviations": [],
+          "related_titles": [],
+          "equivalence_pairs": []
+        },
+        {
+          "canonical_id": "ROLES_MKT_002",
+          "canonical_title": "Performance Marketing Specialist",
+          "canonical_title_pt": "Analista de Performance",
+          "department": "Marketing",
+          "synonyms": [
+            "Analista de Mídia Paga",
+            "Media Buyer",
+            "Traffic Manager",
+            "Gestor de Tráfego",
+            "Paid Media Specialist"
+          ],
+          "abbreviations": ["Paid", "Mídia"],
+          "related_titles": [],
+          "equivalence_pairs": []
+        }
+      ]
+    },
+    {
+      "area_id": "SALES_COMM",
+      "area_name": "Vendas e Comercial",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_SALES_001",
+          "canonical_title": "Account Executive",
+          "canonical_title_pt": "Executivo de Contas",
+          "department": "Comercial",
+          "synonyms": [
+            "Executivo de Vendas",
+            "Consultor de Vendas B2B",
+            "Sales Representative",
+            "Account Executive B2B"
+          ],
+          "abbreviations": ["AE"],
+          "related_titles": [
+            {
+              "title": "SDR",
+              "equivalence_type": "parcial",
+              "weight_modifier": 0.40,
+              "rationale": "O SDR qualifica leads; o AE realiza o fechamento comercial."
+            }
+          ],
+          "equivalence_pairs": []
+        }
+      ]
+    },
+    {
+      "area_id": "FIN_CTRL",
+      "area_name": "Finanças e Controladoria",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_FIN_001",
+          "canonical_title": "Financial Controller",
+          "canonical_title_pt": "Controller",
+          "department": "Finanças",
+          "synonyms": [
+            "Controlador Financeiro",
+            "Gerente de Controladoria",
+            "Controller Financeiro"
+          ],
+          "abbreviations": [],
+          "related_titles": [],
+          "equivalence_pairs": []
+        }
+      ]
+    },
+    {
+      "area_id": "HR_PEOPLE",
+      "area_name": "Recursos Humanos / Gente e Gestão",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_HR_001",
+          "canonical_title": "HR Business Partner",
+          "canonical_title_pt": "Business Partner de RH",
+          "department": "Recursos Humanos",
+          "synonyms": [
+            "BP de Gente",
+            "Business Partner de Recursos Humanos",
+            "Gerente de RH Estratégico",
+            "Consultor de Recursos Humanos"
+          ],
+          "abbreviations": ["HRBP", "BP"],
+          "related_titles": [],
+          "equivalence_pairs": []
+        }
+      ]
+    },
+    {
+      "area_id": "OPS_PROJ_CIVIL",
+      "area_name": "Operações, Projetos e Engenharia Civil/Industrial",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_OPS_001",
+          "canonical_title": "Project Manager",
+          "canonical_title_pt": "Gerente de Projetos",
+          "department": "Operações e Projetos",
+          "synonyms": [
+            "Gerente de Projetos",
+            "PM",
+            "Project Lead",
+            "Gerente de PMO"
+          ],
+          "abbreviations": ["GP", "PM"],
+          "related_titles": [],
+          "equivalence_pairs": []
+        },
+        {
+          "canonical_id": "ROLES_OPS_002",
+          "canonical_title": "Civil Engineer",
+          "canonical_title_pt": "Engenheiro Civil",
+          "department": "Engenharia Civil",
+          "synonyms": [
+            "Engenheiro Residente",
+            "Engenheiro de Obras",
+            "Engenheiro Calculista"
+          ],
+          "abbreviations": [],
+          "related_titles": [
+            {
+              "title": "Gestor de Obras",
+              "equivalence_type": "parcial",
+              "weight_modifier": 0.85,
+              "rationale": "Foco na execução em canteiro e controle de campo."
+            }
+          ],
+          "equivalence_pairs": []
+        }
+      ]
+    },
+    {
+      "area_id": "SUPPLY_CHAIN",
+      "area_name": "Supply Chain e Logística (NOVO)",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_SC_001",
+          "canonical_title": "Supply Chain Manager",
+          "canonical_title_pt": "Gerente de Cadeia de Suprimentos",
+          "department": "Supply Chain",
+          "synonyms": [
+            "Gerente de Supply Chain",
+            "Gerente de Logística e Suprimentos",
+            "Supply Chain Lead"
+          ],
+          "abbreviations": ["SCM"],
+          "related_titles": [],
+          "equivalence_pairs": []
+        },
+        {
+          "canonical_id": "ROLES_SC_002",
+          "canonical_title": "Procurement Specialist",
+          "canonical_title_pt": "Especialista de Compras e Suprimentos",
+          "department": "Suprimentos",
+          "synonyms": [
+            "Comprador Sênior",
+            "Analista de Sourcing",
+            "Strategic Sourcing Specialist",
+            "Analista de Compras"
+          ],
+          "abbreviations": [],
+          "related_titles": [],
+          "equivalence_pairs": []
+        }
+      ]
+    },
+    {
+      "area_id": "CYBER_INFRA",
+      "area_name": "Cibersegurança e Infraestrutura (NOVO)",
+      "job_roles": [
+        {
+          "canonical_id": "ROLES_CYBER_001",
+          "canonical_title": "Cybersecurity Engineer",
+          "canonical_title_pt": "Engenheiro de Cibersegurança",
+          "department": "Segurança da Informação",
+          "synonyms": [
+            "Analista de Segurança da Informação",
+            "Security Engineer",
+            "Analista de Cybersecurity",
+            "SecOps Engineer"
+          ],
+          "abbreviations": ["SecOps"],
+          "related_titles": [],
+          "equivalence_pairs": []
+        },
+        {
+          "canonical_id": "ROLES_CYBER_002",
+          "canonical_title": "DevOps Engineer",
+          "canonical_title_pt": "Engenheiro DevOps",
+          "department": "Infraestrutura",
+          "synonyms": [
+            "DevOps",
+            "SRE",
+            "Site Reliability Engineer",
+            "Platform Engineer",
+            "Engenheiro de Plataforma"
+          ],
+          "abbreviations": ["DevOps", "SRE"],
+          "related_titles": [],
+          "equivalence_pairs": []
+        }
+      ]
+    }
+  ],
+  "seniority_modifiers": [
+    {
+      "tier": "entry",
+      "terms": ["Estagiário", "Trainee", "Assistente", "Junior", "Jr.", "Auxiliar"],
+      "weight_multiplier": 0.50,
+      "cross_tier_compatibility": "Candidato júnior aplicando para vaga sênior sofre penalidade moderada; o oposto é neutro."
+    },
+    {
+      "tier": "mid",
+      "terms": ["Pleno", "Pl.", "Especialista I", "Intermediário"],
+      "weight_multiplier": 0.85,
+      "cross_tier_compatibility": "Compatibilidade padrão com transições laterais de senioridade adjacente."
+    },
+    {
+      "tier": "senior",
+      "terms": ["Sênior", "Sr.", "Especialista Sênior", "Staff", "Principal"],
+      "weight_multiplier": 1.00,
+      "cross_tier_compatibility": "Senioridade alta. Profissionais seniores atendem plenamente vagas plenas (sem punição severa)."
+    },
+    {
+      "tier": "leadership",
+      "terms": ["Coordenador", "Supervisor", "Gerente", "Head", "Diretor", "VP", "C-Level"],
+      "weight_multiplier": 0.40,
+      "cross_tier_compatibility": "Cargos de liderança exigem governança de pessoas; desajustados para cargos estritamente executivos individuais (IC)."
+    }
+  ]
+}

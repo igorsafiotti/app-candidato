@@ -1,0 +1,796 @@
+{
+"database_info": {
+"title": "Base de Verbos de Ação Executiva (ATS-Ready)",
+"version": "1.0",
+"target": "Sistemas de Análise de Currículos e ATS",
+"language": "pt-BR"
+},
+"categories": [
+{
+"category_id": "lideranca_gestao_pessoas",
+"category_name": "Liderança e gestão de pessoas",
+"description": "Verbos ligados a conduzir equipes, tomar decisões e orientar pessoas.",
+"verbs": [
+{
+"verb_infinitive": "alinhar",
+"conjugated_form": "alinhei",
+"usage_note": "Comunica a sincronização de objetivos estratégicos entre equipes multidisciplinares e lideranças executivas.",
+"strong_example_phrase": "Alinhei as metas trimestrais das equipes de produto e engenharia, reduzindo o desalinhamento operacional em 25%."
+},
+{
+"verb_infinitive": "capacitar",
+"conjugated_form": "capacitei",
+"usage_note": "Demonstra investimento direto no desenvolvimento de competências técnicas e comportamentais do time.",
+"strong_example_phrase": "Capacitei 15 analistas em metodologias ágeis, elevando a autonomia e a entrega pontual dos sprints em 30%."
+},
+{
+"verb_infinitive": "coordenar",
+"conjugated_form": "coordenei",
+"usage_note": "Evidencia a gestão direta de projetos complexos, frentes de trabalho ou operações cruzadas.",
+"strong_example_phrase": "Coordenei o lançamento regional de um novo produto, unificando os esforços de marketing, vendas e suporte."
+},
+{
+"verb_infinitive": "conduzir",
+"conjugated_form": "conduzi",
+"usage_note": "Expressa a direção ativa de processos críticos, negociações estratégicas ou transições organizacionais.",
+"strong_example_phrase": "Conduzi a transição completa da arquitetura de dados sem impactar os SLAs dos clientes ativos."
+},
+{
+"verb_infinitive": "delegar",
+"conjugated_form": "deleguei",
+"usage_note": "Demonstra maturidade em gestão por meio da distribuição estratégica de responsabilidades com foco em eficiência.",
+"strong_example_phrase": "Deleguei frentes de escrow e auditoria fiscal, liberando 15 horas semanais para planejamento estratégico."
+},
+{
+"verb_infinitive": "desenvolver",
+"conjugated_form": "desenvolvi",
+"usage_note": "Foca no crescimento de longo prazo de colaboradores e na retenção de talentos-chave.",
+"strong_example_phrase": "Desenvolvi um programa interno de mentoria que promoveu 4 analistas plenos a cargos de liderança."
+},
+{
+"verb_infinitive": "direcionar",
+"conjugated_form": "direcionei",
+"usage_note": "Reflete a capacidade de traçar diretrizes claras em momentos de ambiguidade ou crise.",
+"strong_example_phrase": "Direcionei o redesenho da estratégia de atendimento ao cliente durante crise de infraestrutura, mantendo o CSAT acima de 90%."
+},
+{
+"verb_infinitive": "empoderar",
+"conjugated_form": "empoderei",
+"usage_note": "Comunica a criação de autonomia e descentralização de decisões operacionais nas pontas.",
+"strong_example_phrase": "Empoderei gerentes de contas com novos limites de alçada, acelerando o fechamento de contratos em 40%."
+},
+{
+"verb_infinitive": "estruturar",
+"conjugated_form": "estruturei",
+"usage_note": "Destaca a criação de áreas, departamentos ou organogramas do zero com foco em escalabilidade.",
+"strong_example_phrase": "Estruturei o departamento de Customer Success do zero, contratando e integrando 12 profissionais em 60 dias."
+},
+{
+"verb_infinitive": "fomentar",
+"conjugated_form": "fomentei",
+"usage_note": "Indica o estímulo a uma cultura de alta performance, inovação e colaboração interna.",
+"strong_example_phrase": "Fomentei uma cultura de melhoria contínua que resultou em mais de 30 ideias de automação implementadas pelo time."
+},
+{
+"verb_infinitive": "gerenciar",
+"conjugated_form": "gerenciei",
+"usage_note": "Aponta o controle e a supervisão de grandes orçamentos, portfólios ou equipes multifuncionais.",
+"strong_example_phrase": "Gerenciei um orçamento de R$ 3 milhões e uma equipe de 20 especialistas em tecnologia e operações."
+},
+{
+"verb_infinitive": "inspirar",
+"conjugated_form": "inspirei",
+"usage_note": "Relacionado a liderança transformacional e engajamento de equipes em grandes missões.",
+"strong_example_phrase": "Inspirei o time de vendas a bater o recorde histórico de faturamento trimestral, superando a meta em 135%."
+},
+{
+"verb_infinitive": "liderar",
+"conjugated_form": "liderei",
+"usage_note": "O clássico indicador de comando de equipes e condução de grandes frentes de negócio.",
+"strong_example_phrase": "Liderei um esquadrão de 25 engenheiros na migração bem-sucedida para nuvem da infraestrutura corporativa."
+},
+{
+"verb_infinitive": "mentorear",
+"conjugated_form": "mentorei",
+"usage_note": "Focado no suporte individualizado a profissionais em ascensão de carreira.",
+"strong_example_phrase": "Mentorei novos coordenadores em gestão de conflitos e métricas OKR, melhorando o clima organizacional."
+},
+{
+"verb_infinitive": "mobilizar",
+"conjugated_form": "mobilizei",
+"usage_note": "Demonstra habilidade em congregar recursos e pessoas rapidamente em torno de um objetivo urgente.",
+"strong_example_phrase": "Mobilizei equipes de suporte e engenharia para corrigir uma falha crítica de sistema em menos de 2 horas."
+},
+{
+"verb_infinitive": "orquestrar",
+"conjugated_form": "orquestrei",
+"usage_note": "Excelente para descrever a sincronização complexa de múltiplos stakeholders e processos simultâneos.",
+"strong_example_phrase": "Orquestrei a integração pós-fusão de duas empresas de tecnologia, alinhando culturas e sistemas legados."
+},
+{
+"verb_infinitive": "promover",
+"conjugated_form": "promovi",
+"usage_note": "Indica o avanço de colaboradores por mérito ou o incentivo a práticas de excelência.",
+"strong_example_phrase": "Promovi a adoção de testes automatizados na squad, reduzindo bugs em produção em 45%."
+},
+{
+"verb_infinitive": "recrutar",
+"conjugated_form": "recrutei",
+"usage_note": "Destaca a atração ativa de talentos de alto desempenho para o ecossistema da empresa.",
+"strong_example_phrase": "Recrutei e selecionei os principais desenvolvedores seniores para compor a nova divisão de inteligência artificial."
+},
+{
+"verb_infinitive": "reestruturar",
+"conjugated_form": "reestruturei",
+"usage_note": "Focado em turnaround de equipes, corte de gordura organizacional e aumento de produtividade.",
+"strong_example_phrase": "Reestruturei a operação de logística, eliminando gargalos e aumentando o índice de entregas no prazo em 18%."
+},
+{
+"verb_infinitive": "unificar",
+"conjugated_form": "unifiquei",
+"usage_note": "Comunica a fusão de equipes isoladas em uma força de trabalho coesa e integrada.",
+"strong_example_phrase": "Unifiquei três equipes regionais de atendimento em um único núcleo de operações centralizado."
+}
+]
+},
+{
+"category_id": "otimizacao_processos_eficiencia",
+"category_name": "Otimização de processos e eficiência",
+"description": "Verbos ligados a reduzir custos, tempo e retrabalho, e a automatizar ou padronizar.",
+"verbs": [
+{
+"verb_infinitive": "acelerar",
+"conjugated_form": "acelerei",
+"usage_note": "Indica ganho de velocidade no ciclo de entregas, produção ou faturamento.",
+"strong_example_phrase": "Acelerei o ciclo de onboarding de clientes de 14 para 3 dias úteis através de automações de dados."
+},
+{
+"verb_infinitive": "automatizar",
+"conjugated_form": "automatizei",
+"usage_note": "Evidencia a substituição de trabalho manual por processos digitais ou scripts.",
+"strong_example_phrase": "Automatizei o fluxo de emissão de faturas com Python, eliminando 100% dos erros manuais e economizando 40h/mês."
+},
+{
+"verb_infinitive": "comprimir",
+"conjugated_form": "comprimi",
+"usage_note": "Mostra redução no prazo ou na duração de processos longos e burocráticos.",
+"strong_example_phrase": "Comprimi o tempo de aprovação de crédito corporativo de 5 dias para 4 horas."
+},
+{
+"verb_infinitive": "cortar",
+"conjugated_form": "cortei",
+"usage_note": "Comunica eliminação objetiva de custos desnecessários ou redundâncias operacionais.",
+"strong_example_phrase": "Cortei custos operacionais supérfluos em 22% através da renegociação de contratos com fornecedores legados."
+},
+{
+"verb_infinitive": "desburocratizar",
+"conjugated_form": "desburocratizei",
+"usage_note": "Focado na simplificação de fluxos corporativos excessivamente complexos.",
+"strong_example_phrase": "Desburocratizei o processo de reembolso de despesas, reduzindo o atrito interno e a reclamação dos colaboradores."
+},
+{
+"verb_infinitive": "eliminar",
+"conjugated_form": "eliminei",
+"usage_note": "Demonstra o expurgo definitivo de gargalos, desperdícios ou etapas obsoletas.",
+"strong_example_phrase": "Eliminei etapas redundantes no fluxo de compras, reduzindo o lead time de suprimentos em 35%."
+},
+{
+"verb_infinitive": "enxugar",
+"conjugated_form": "enxuguei",
+"usage_note": "Aponta a otimização de estruturas inchadas para ganho de agilidade e margem.",
+"strong_example_phrase": "Enxuguei o inventário excedente em armazéns, liberando R$ 1,2 milhão em capital de giro imobilizado."
+},
+{
+"verb_infinitive": "minimizar",
+"conjugated_form": "minimizei",
+"usage_note": "Relacionado à redução controlada de riscos, perdas financeiras ou margens de erro.",
+"strong_example_phrase": "Minimizei em 80% o índice de retrabalho na linha de produção por meio de rigorosos checklists de qualidade."
+},
+{
+"verb_infinitive": "modernizar",
+"conjugated_form": "modernizei",
+"usage_note": "Indica a atualização de tecnologias, parques de máquinas ou metodologias defasadas.",
+"strong_example_phrase": "Modernizei o parque tecnológico do setor financeiro, substituindo planilhas manuais por um ERP integrado."
+},
+{
+"verb_infinitive": "otimizar",
+"conjugated_form": "otimizei",
+"usage_note": "O termo coringa de eficiência; indica o ajuste fino de recursos para máxima performance.",
+"strong_example_phrase": "Otimizei as consultas SQL do banco de dados principal, reduzindo o tempo de resposta do sistema em 60%."
+},
+{
+"verb_infinitive": "padronizar",
+"conjugated_form": "padronizei",
+"usage_note": "Essencial para processos repetitivos que exigem consistência, conformidade ou ISO.",
+"strong_example_phrase": "Padronizei os manuais de atendimento técnico, diminuindo a curva de aprendizado de novos contratados em 50%."
+},
+{
+"verb_infinitive": "racionalizar",
+"conjugated_form": "racionalizei",
+"usage_note": "Comunica o uso inteligente e baseado em dados de insumos, verbas ou capacidade produtiva.",
+"strong_example_phrase": "Racionalizei o uso de servidores em nuvem (AWS), gerando uma economia recorrente de 30% na fatura mensal."
+},
+{
+"verb_infinitive": "reduzir",
+"conjugated_form": "reduzi",
+"usage_note": "Um dos verbos mais fortes para demonstrar economia financeira ou de tempo de forma direta.",
+"strong_example_phrase": "Reduzi o churn rate da base de clientes de 8% para 3% ao trimestre através de melhorias no suporte."
+},
+{
+"verb_infinitive": "simplificar",
+"conjugated_form": "simplifiquei",
+"usage_note": "Focado em tornar acessíveis e diretos processos ou produtos complexos.",
+"strong_example_phrase": "Simplifiquei a jornada de checkout no e-commerce, aumentando a conversão de vendas em 14%."
+},
+{
+"verb_infinitive": "solucionar",
+"conjugated_form": "solucionei",
+"usage_note": "Destaca a resolução definitiva de problemas crônicos que afetavam a operação.",
+"strong_example_phrase": "Solucionei gargalos históricos na cadeia de suprimentos que causavam rupturas recorrentes de estoque."
+},
+{
+"verb_infinitive": "sintetizar",
+"conjugated_form": "sintetizei",
+"usage_note": "Mostra habilidade em resumir relatórios complexos ou fluxos de dados para tomadas de decisão.",
+"strong_example_phrase": "Sintetizei relatórios financeiros complexos em dashboards executivos de fácil leitura para o C-Level."
+},
+{
+"verb_infinitive": "transicionar",
+"conjugated_form": "transicionei",
+"usage_note": "Indica a migração segura de sistemas, locais físicos ou modelos operacionais.",
+"strong_example_phrase": "Transicionei a operação de atendimento telefônico para um modelo omnicanal sem interrupção de serviço."
+},
+{
+"verb_infinitive": "organizar em ciclos",
+"conjugated_form": "organizei",
+"usage_note": "Refere-se à quebra de metas anuais em entregas fracionadas e ágeis.",
+"strong_example_phrase": "Organizei o planejamento de entregas em ciclos trimestrais rígidos, elevando a previsibilidade em 50%."
+},
+{
+"verb_infinitive": "uniformizar",
+"conjugated_form": "uniformizei",
+"usage_note": "Aponta a aplicação de um padrão único de qualidade em filiais ou equipes distintas.",
+"strong_example_phrase": "Uniformizei os procedimentos de segurança do trabalho em todas as 5 unidades fabris da empresa."
+},
+{
+"verb_infinitive": "viabilizar",
+"conjugated_form": "viabilizei",
+"usage_note": "Demonstra a capacidade de destravar projetos travados por falta de recursos ou burocracia.",
+"strong_example_phrase": "Viabilizei a liberação de licenças ambientais complexas, permitindo o início antecipado das obras da nova filial."
+}
+]
+},
+{
+"category_id": "receita_crescimento_comercial",
+"category_name": "Receita e crescimento comercial",
+"description": "Verbos ligados a faturamento, expansão de mercado e monetização.",
+"verbs": [
+{
+"verb_infinitive": "ampliar",
+"conjugated_form": "ampliei",
+"usage_note": "Indica o crescimento de canais de venda, carteira de clientes ou capacidade de entrega.",
+"strong_example_phrase": "Ampliei a base de parceiros comerciais estratégicos em 45% no primeiro ano de gestão."
+},
+{
+"verb_infinitive": "captar",
+"conjugated_form": "captei",
+"usage_note": "Focado na atração de novos recursos financeiros, investidores ou grandes contas B2B.",
+"strong_example_phrase": "Captei R$ 5 milhões em investimentos semente (seed money) para expansão da startup."
+},
+{
+"verb_infinitive": "comercializar",
+"conjugated_form": "comercializei",
+"usage_note": "Demonstra atuação direta na venda de produtos, serviços ou ativos de alto valor.",
+"strong_example_phrase": "Comercializei soluções corporativas de software, batendo 120% da meta de vendas anuais consecutivamente."
+},
+{
+"verb_infinitive": "conquistar",
+"conjugated_form": "conquistei",
+"usage_note": "Relacionado a vitórias comerciais expressivas, como contas enterprise ou prêmios de mercado.",
+"strong_example_phrase": "Conquistei 3 clientes do ranking Fortune 500, adicionando R$ 4 milhões em ARR (Annual Recurring Revenue)."
+},
+{
+"verb_infinitive": "crescer",
+"conjugated_form": "cresci",
+"usage_note": "Indica o aumento escalável de indicadores de receita, tráfego ou market share.",
+"strong_example_phrase": "Cresci o faturamento da divisão de e-commerce em 75% em um período de 12 meses."
+},
+{
+"verb_infinitive": "desbravar",
+"conjugated_form": "desbravei",
+"usage_note": "Aponta a abertura de frentes de negócio inéditas ou entrada em mercados virgens.",
+"strong_example_phrase": "Desbravei o mercado da Região Nordeste, abrindo 15 novos canais de distribuição exclusivos."
+},
+{
+"verb_infinitive": "dobrar",
+"conjugated_form": "dobrei",
+"usage_note": "Termo quantitativo de impacto máximo que demonstra duplicação de um indicador de negócio.",
+"strong_example_phrase": "Dobrei o volume de transações diárias na plataforma digital após o lançamento de campanhas de incentivo."
+},
+{
+"verb_infinitive": "escalar",
+"conjugated_form": "escalonei",
+"usage_note": "Fundamental para empresas de crescimento; indica crescimento sem aumento proporcional de custos.",
+"strong_example_phrase": "Escalonei o modelo de aquisição de leads, reduzindo o CAC (Custo de Aquisição de Clientes) em 35%."
+},
+{
+"verb_infinitive": "expandir",
+"conjugated_form": "expandi",
+"usage_note": "Focado no crescimento geográfico, de portfólio ou de capilaridade de mercado.",
+"strong_example_phrase": "Expandi a atuação da empresa para a América Latina, inaugurando operações comerciais no Chile e Colômbia."
+},
+{
+"verb_infinitive": "faturar",
+"conjugated_form": "faturei",
+"usage_note": "Demonstra geração direta de receita bruta ou líquida para a organização.",
+"strong_example_phrase": "Faturei R$ 10 milhões no ano fiscal de 2025, superando o recorde histórico anterior da unidade de negócios."
+},
+{
+"verb_infinitive": "fechar",
+"conjugated_form": "fechei",
+"usage_note": "Muito usado em vendas complexas B2B para denotar a assinatura de contratos de grande porte.",
+"strong_example_phrase": "Fechei o maior contrato corporativo da história da empresa, avaliado em R$ 2,5 milhões em receita recorrente."
+},
+{
+"verb_infinitive": "gerar",
+"conjugated_form": "gerei",
+"usage_note": "Aponta a criação de valor tangível, seja em leads qualificados, receita ou oportunidades.",
+"strong_example_phrase": "Gerei mais de R$ 800 mil em pipeline de vendas qualificadas através de campanhas de outbound marketing."
+},
+{
+"verb_infinitive": "maximizar",
+"conjugated_form": "maximizei",
+"usage_note": "Indica a extração do teto de receita ou lucro de um canal, produto ou ativo existente.",
+"strong_example_phrase": "Maximizei o ROI de campanhas pagas através de testes A/B contínuos, elevando o retorno sobre o adspend em 50%."
+},
+{
+"verb_infinitive": "monetizar",
+"conjugated_form": "monetizei",
+"usage_note": "Focado em transformar bases gratuitas, tráfego ou ativos ociosos em fontes de receita.",
+"strong_example_phrase": "Monetizei a base de usuários freemium da plataforma, lançando planos pagos que geraram 15% de margem extra."
+},
+{
+"verb_infinitive": "inserir",
+"conjugated_form": "inseri",
+"usage_note": "Indica introdução de produtos ou marcas em novos nichos de mercado.",
+"strong_example_phrase": "Inseri a marca em 3 novos nichos de mercado com taxa de penetração superior a 12% no primeiro semestre."
+},
+{
+"verb_infinitive": "posicionar",
+"conjugated_form": "posicionei",
+"usage_note": "Relacionado a branding estratégico, precificação e diferenciação competitiva de produtos.",
+"strong_example_phrase": "Posicionei a marca no segmento premium, permitindo um reajuste de preços de 25% sem perda de volume."
+},
+{
+"verb_infinitive": "rentabilizar",
+"conjugated_form": "rentabilizei",
+"usage_note": "Focado em transformar operações deficitárias ou pouco lucrativas em negócios de alta margem.",
+"strong_example_phrase": "Rentabilizei a carteira de clientes inativos, recuperando R$ 500 mil em contas que não geravam receita há 1 ano."
+},
+{
+"verb_infinitive": "salvar",
+"conjugated_form": "salvei",
+"usage_note": "Evidencia a reversão de grandes perdas comerciais ou recuperação de contas prestes a cancelar.",
+"strong_example_phrase": "Salvei uma conta-chave de R$ 1,8 milhão prestes a cancelar, renegociando o escopo do contrato com sucesso."
+},
+{
+"verb_infinitive": "superar",
+"conjugated_form": "superei",
+"usage_note": "Excelente para demonstrar o atingimento de metas agressivas e quebra de recordes.",
+"strong_example_phrase": "Superei em 140% a meta de vendas estabelecida pelo conselho administrativo no terceiro trimestre."
+},
+{
+"verb_infinitive": "vender",
+"conjugated_form": "vendi",
+"usage_note": "Aponta transações comerciais diretas de alto impacto.",
+"strong_example_phrase": "Vendi mais de 500 licenças corporativas de software para o setor público em licitação exclusiva."
+}
+]
+},
+{
+"category_id": "inovacao_projetos",
+"category_name": "Inovação e projetos",
+"description": "Verbos ligados a criar, lançar e implementar soluções.",
+"verbs": [
+{
+"verb_infinitive": "arquitetar",
+"conjugated_form": "arquitetei",
+"usage_note": "Indica a concepção técnica de sistemas, estruturas complexas ou novas linhas de negócio.",
+"strong_example_phrase": "Arquitetei o novo sistema de pagamentos da empresa, garantindo conformidade total com as normas do Banco Central."
+},
+{
+"verb_infinitive": "conceber",
+"conjugated_form": "concebi",
+"usage_note": "Focado na ideação e na criação do conceito original de um produto, serviço ou campanha.",
+"strong_example_phrase": "Concebi o design de serviço do novo aplicativo móvel, focado em acessibilidade e retenção de usuários."
+},
+{
+"verb_infinitive": "construir",
+"conjugated_form": "construí",
+"usage_note": "Evidencia a materialização prática de uma solução, software, infraestrutura ou processo.",
+"strong_example_phrase": "Construí do zero um data warehouse centralizado, unificando fontes de dados de 5 sistemas diferentes."
+},
+{
+"verb_infinitive": "criar",
+"conjugated_form": "criei",
+"usage_note": "O termo fundamental de inovação e desenvolvimento de ativos originais.",
+"strong_example_phrase": "Criei um algoritmo proprietário de recomendação de produtos que elevou o ticket médio em 18%."
+},
+{
+"verb_infinitive": "desenhar",
+"conjugated_form": "desenhei",
+"usage_note": "Usado para modelagem de processos, fluxos de usuário, arquiteturas e estratégias.",
+"strong_example_phrase": "Desenhei o novo fluxo de experiência do usuário (UX) para o portal de autoatendimento, reduzindo chamados em 30%."
+},
+{
+"verb_infinitive": "engenheirizar",
+"conjugated_form": "engenheirizei",
+"usage_note": "Refere-se à aplicação rigorosa de engenharia na solução de problemas técnicos complexos.",
+"strong_example_phrase": "Engenheirizei a infraestrutura de microsserviços, garantindo uptime de 99,99% em horários de pico."
+},
+{
+"verb_infinitive": "estabelecer",
+"conjugated_form": "estabeleci",
+"usage_note": "Indica a fundação de novas normas, parcerias, filiais ou estruturas corporativas.",
+"strong_example_phrase": "Estabeleci parcerias estratégicas com 10 universidades para captação direta de talentos de tecnologia."
+},
+{
+"verb_infinitive": "executar",
+"conjugated_form": "executei",
+"usage_note": "Focado na entrega impecável de planejamentos complexos dentro de prazos estipulados.",
+"strong_example_phrase": "Executei o plano diretor de expansão logística, entregando o centro de distribuição 15 dias antes do prazo."
+},
+{
+"verb_infinitive": "formular",
+"conjugated_form": "formulei",
+"usage_note": "Indica a criação de hipóteses, estratégias, políticas internas ou modelos financeiros.",
+"strong_example_phrase": "Formulei a nova política de precificação baseada em valor, aumentando a margem bruta de lucro em 8%."
+},
+{
+"verb_infinitive": "idealizar",
+"conjugated_form": "idealizei",
+"usage_note": "Destaca a faísca inicial de projetos inovadores que viraram produtos ou negócios de sucesso.",
+"strong_example_phrase": "Idealizei a ferramenta interna de IA generativa para redação de e-mails, economizando 5 horas semanais por analista."
+},
+{
+"verb_infinitive": "implementar",
+"conjugated_form": "implementei",
+"usage_note": "Um dos verbos mais exigidos por ATS; demonstra que a ideia saiu do papel e virou realidade.",
+"strong_example_phrase": "Implementei o framework Scrum em uma equipe tradicional de engenharia, aumentando a velocidade de entrega em 40%."
+},
+{
+"verb_infinitive": "inovar",
+"conjugated_form": "inovei",
+"usage_note": "Comunica a introdução de algo radicalmente novo nos processos ou portfólio da empresa.",
+"strong_example_phrase": "Inovei o processo de validação de crédito ao integrar biometria facial via API de terceiros."
+},
+{
+"verb_infinitive": "instalar",
+"conjugated_form": "instalei",
+"usage_note": "Focado em implantações físicas, industriais ou de infraestrutura de TI pesada.",
+"strong_example_phrase": "Instalei e configurei novos servidores locais para processamento de Big Data, dobrando a capacidade analítica."
+},
+{
+"verb_infinitive": "lançar",
+"conjugated_form": "lancei",
+"usage_note": "O marco zero comercial de produtos, marcas ou grandes atualizações de mercado.",
+"strong_example_phrase": "Lancei o novo aplicativo móvel da empresa, alcançando mais de 100 mil downloads orgânicos no primeiro mês."
+},
+{
+"verb_infinitive": "materializar",
+"conjugated_form": "materializei",
+"usage_note": "Indica a transformação de conceitos abstratos em entregas concretas e funcionais.",
+"strong_example_phrase": "Materializei a visão estratégica da diretoria em um produto mínimo viável (MVP) lançado em tempo recorde."
+},
+{
+"verb_infinitive": "pilotar",
+"conjugated_form": "pilotei",
+"usage_note": "Demonstra a liderança de projetos-piloto (testes controlados) antes de rollouts em larga escala.",
+"strong_example_phrase": "Pilotei o projeto de adoção de jornadas híbridas de trabalho em uma unidade de 200 pessoas com 95% de aprovação."
+},
+{
+"verb_infinitive": "planejar",
+"conjugated_form": "planejei",
+"usage_note": "Focado na antecipação estratégica, cronogramas e alocação de recursos em projetos.",
+"strong_example_phrase": "Planejei o cronograma orçamentário e de marcos para o projeto de transição de ERP de R$ 5 milhões."
+},
+{
+"verb_infinitive": "prototipar",
+"conjugated_form": "prototipei",
+"usage_note": "Essencial em metodologias ágeis e design thinking para teste rápido de hipóteses.",
+"strong_example_phrase": "Prototipei telas de alta fidelidade para o novo portal, reduzindo o tempo de validação com usuários em 50%."
+},
+{
+"verb_infinitive": "realizar",
+"conjugated_form": "realizei",
+"usage_note": "Aponta a conclusão bem-sucedida de entregas de alto valor para a organização.",
+"strong_example_phrase": "Realizei a auditoria completa de segurança da informação, identificando e corrigindo 14 vulnerabilidades críticas."
+},
+{
+"verb_infinitive": "transformar",
+"conjugated_form": "transformei",
+"usage_note": "Indica mudança profunda e estrutural em sistemas, culturas ou modelos de negócio.",
+"strong_example_phrase": "Transformei um departamento analógico de planilhas em uma operação totalmente orientada a dados (Data-Driven)."
+}
+]
+},
+{
+"category_id": "qualidade_melhoria_continua",
+"category_name": "Qualidade e melhoria contínua",
+"description": "Verbos ligados a aprimorar, padronizar e elevar indicadores.",
+"verbs": [
+{
+"verb_infinitive": "aprimorar",
+"conjugated_form": "aprimorei",
+"usage_note": "Focado no refinamento e elevação de qualidade de produtos, serviços ou entregas.",
+"strong_example_phrase": "Aprimorei o algoritmo de detecção de fraudes, elevando a assertividade da ferramenta de 85% para 96%."
+},
+{
+"verb_infinitive": "assegurar",
+"conjugated_form": "assegurei",
+"usage_note": "Indica garantia rigorosa de conformidade, prazos ou padrões de qualidade técnica.",
+"strong_example_phrase": "Assegurei 100% de conformidade com as normas da LGPD em todas as bases de dados de clientes da companhia."
+},
+{
+"verb_infinitive": "auditar",
+"conjugated_form": "auditei",
+"usage_note": "Relacionado a análises profundas de conformidade financeira, fiscal ou de processos.",
+"strong_example_phrase": "Auditei os processos contábeis do trimestre, identificando desvios de fluxo e recuperando R$ 150 mil."
+},
+{
+"verb_infinitive": "certificar",
+"conjugated_form": "certifiquei",
+"usage_note": "Aponta a obtenção de selos de qualidade oficiais ou validação formal de processos.",
+"strong_example_phrase": "Certifiquei a empresa na norma ISO 9001 após revisão completa dos manuais de processos industriais."
+},
+{
+"verb_infinitive": "corrigir",
+"conjugated_form": "corrigi",
+"usage_note": "Focado na eliminação rápida de falhas, bugs estruturais ou desvios de rota.",
+"strong_example_phrase": "Corrigi falhas críticas de segurança no código-fonte em tempo hábil, prevenindo brechas de dados."
+},
+{
+"verb_infinitive": "elevar",
+"conjugated_form": "elevei",
+"usage_note": "Ótimo para demonstrar o crescimento direto de KPIs corporativos (NPS, CSAT, margens).",
+"strong_example_phrase": "Elevei o índice de satisfação do cliente (NPS) de 55 para 78 pontos através de um plano focado em pós-venda."
+},
+{
+"verb_infinitive": "garantir",
+"conjugated_form": "garanti",
+"usage_note": "Demonstra responsabilidade direta pela entrega dentro de padrões rígidos de excelência.",
+"strong_example_phrase": "Garanti a entrega de relatórios financeiros mensais ao Conselho de Administração sem nenhum atraso em 2 anos."
+},
+{
+"verb_infinitive": "homologar",
+"conjugated_form": "homologuei",
+"usage_note": "Usado em testes, validações técnicas de fornecedores ou liberação de softwares.",
+"strong_example_phrase": "Homologuei 5 novos fornecedores de matéria-prima, garantindo redundância na cadeia de suprimentos."
+},
+{
+"verb_infinitive": "identificar",
+"conjugated_form": "identifiquei",
+"usage_note": "Focado na descoberta analítica de oportunidades de melhoria ou gargalos ocultos.",
+"strong_example_phrase": "Identifiquei falhas recorrentes no processo de faturamento que causavam perda de 3% da receita mensal."
+},
+{
+"verb_infinitive": "padronizar",
+"conjugated_form": "padronizei",
+"usage_note": "Definição de padrões operacionais estritos para eliminação de variabilidade.",
+"strong_example_phrase": "Padronizei os checklists de manutenção preventiva, reduzindo quebras de maquinário em 40%."
+},
+{
+"verb_infinitive": "refinar",
+"conjugated_form": "refinei",
+"usage_note": "Aponta o polimento de regras de negócio, interfaces, textos ou códigos para máxima performance.",
+"strong_example_phrase": "Refinei as regras de crédito do motor de risco, reduzindo a inadimplência da carteira em 2,5 pontos percentuais."
+},
+{
+"verb_infinitive": "regularizar",
+"conjugated_form": "regularizei",
+"usage_note": "Focado na solução de pendências legais, fiscais, cadastrais ou regulatórias.",
+"strong_example_phrase": "Regularizei a situação fiscal da empresa junto aos órgãos federais, eliminando riscos de multas e sanções."
+},
+{
+"verb_infinitive": "revisar",
+"conjugated_form": "revisei",
+"usage_note": "Indica análise minuciosa para expurgar erros e elevar o rigor técnico de entregas.",
+"strong_example_phrase": "Revisei contratos de prestação de serviços de grande porte, inserindo cláusulas de proteção contra reajustes abusivos."
+},
+{
+"verb_infinitive": "robustecer",
+"conjugated_form": "robusteci",
+"usage_note": "Excelente para descrever o fortalecimento de infraestruturas, sistemas ou contratos contra riscos.",
+"strong_example_phrase": "Robusteci a infraestrutura de servidores contra ataques de negação de serviço (DDoS), garantindo estabilidade."
+},
+{
+"verb_infinitive": "sanar",
+"conjugated_form": "sanei",
+"usage_note": "Sinônimo elegante para correção definitiva de problemas ou limpeza de dados.",
+"strong_example_phrase": "Sanei a base de dados de clientes, eliminando mais de 50 mil registros duplicados ou inativos."
+},
+{
+"verb_infinitive": "testar",
+"conjugated_form": "testei",
+"usage_note": "Focado na experimentação controlada de hipóteses, softwares ou campanhas.",
+"strong_example_phrase": "Testei 3 variações de layouts de checkout, identificando a versão com maior taxa de conversão."
+},
+{
+"verb_infinitive": "validar",
+"conjugated_form": "validei",
+"usage_note": "Demonstra a comprovação empírica de teorias, modelos de negócios ou entregas técnicas.",
+"strong_example_phrase": "Validei a viabilidade técnica do novo produto tecnológico por meio de testes com 50 usuários beta."
+},
+{
+"verb_infinitive": "verificar",
+"conjugated_form": "verifiquei",
+"usage_note": "Aponta a checagem rigorosa de informações para assegurar precisão cirúrgica.",
+"strong_example_phrase": "Verifiquei a exatidão das demonstrações contábeis anuais, sem apontamentos de ressalvas pelos auditores externos."
+}
+]
+},
+{
+"category_id": "relacionamento_negociacao",
+"category_name": "Relacionamento e negociação",
+"description": "Verbos ligados a parcerias, acordos e comunicação com stakeholders.",
+"verbs": [
+{
+"verb_infinitive": "articular",
+"conjugated_form": "articulei",
+"usage_note": "Comunica a capacidade de costurar apoios políticos, internos ou acordos complexos entre partes.",
+"strong_example_phrase": "Articulei junto à diretoria executiva a aprovação unânime do novo orçamento de inovação digital."
+},
+{
+"verb_infinitive": "cimentar",
+"conjugated_form": "cimentei",
+"usage_note": "Metáfora forte para consolidação duradoura de parcerias ou relações institucionais.",
+"strong_example_phrase": "Cimentei parcerias estratégicas de longo prazo com as 3 maiores universidades do estado para programas de P&D."
+},
+{
+"verb_infinitive": "comunicar",
+"conjugated_form": "comuniquei",
+"usage_note": "Focado na transparência, clareza e difusão de diretrizes corporativas importantes.",
+"strong_example_phrase": "Comuniquei os resultados financeiros trimestrais de forma transparente para mais de 500 colaboradores globais."
+},
+{
+"verb_infinitive": "concertar",
+"conjugated_form": "concerti",
+"usage_note": "Indica a harmonização de interesses divergentes entre departamentos ou parceiros.",
+"strong_example_phrase": "Concerti interesses divergentes entre as equipes jurídica e comercial, viabilizando a assinatura do contrato."
+},
+{
+"verb_infinitive": "convencer",
+"conjugated_form": "convenci",
+"usage_note": "Aponta poder de argumentação e persuasão baseado em dados e lógica de negócios.",
+"strong_example_phrase": "Convenci stakeholders céticos sobre a viabilidade da migração tecnológica através de um business case robusto."
+},
+{
+"verb_infinitive": "co-criar",
+"conjugated_form": "co-criei",
+"usage_note": "Destaca o trabalho colaborativo lado a lado com clientes ou parceiros na construção de soluções.",
+"strong_example_phrase": "Co-criei uma ferramenta customizada em conjunto com nosso principal cliente corporativo, garantindo retenção de 100%."
+},
+{
+"verb_infinitive": "debelar",
+"conjugated_form": "debelei",
+"usage_note": "Focado na contenção e resolução pacífica ou técnica de crises e conflitos agudos.",
+"strong_example_phrase": "Debelei uma crise de imagem pública decorrente de falha sistêmica, conduzindo notas oficiais e alinhamentos."
+},
+{
+"verb_infinitive": "dialogar",
+"conjugated_form": "dialoguei",
+"usage_note": "Indica abertura e condução construtiva de conversas difíceis de negociação.",
+"strong_example_phrase": "Dialoguei com líderes sindicais durante negociação de reajuste salarial, evitando paralisações operacionais."
+},
+{
+"verb_infinitive": "engajar",
+"conjugated_form": "engajei",
+"usage_note": "Fundamental para mensurar o envolvimento de públicos internos ou externos com uma causa ou marca.",
+"strong_example_phrase": "Engajei a comunidade de desenvolvedores através de hackathons trimestrais, gerando 40 novas propostas de código."
+},
+{
+"verb_infinitive": "facilitar",
+"conjugated_form": "facilitei",
+"usage_note": "Relacionado a desatar nós em reuniões, workshops ou negociações complexas entre áreas.",
+"strong_example_phrase": "Facilitei workshops de planejamento estratégico com diretores, acelerando o consenso em decisões críticas."
+},
+{
+"verb_infinitive": "fechar",
+"conjugated_form": "fechei",
+"usage_note": "Conclusão bem-sucedida de acordos, parcerias ou contratos institucionais.",
+"strong_example_phrase": "Fechei acordo de exclusividade com distribuidor nacional, ampliando nossa presença em 200 novos pontos de venda."
+},
+{
+"verb_infinitive": "mediar",
+"conjugated_form": "mediei",
+"usage_note": "Demonstra imparcialidade e habilidade diplomática na resolução de impasses ou conflitos.",
+"strong_example_phrase": "Mediei negociações complexas de SLA entre equipes de produto e atendimento, reduzindo atritos em 70%."
+},
+{
+"verb_infinitive": "negociar",
+"conjugated_form": "negociei",
+"usage_note": "O verbo mestre de acordos comerciais, trabalhistas ou de fornecimento.",
+"strong_example_phrase": "Negociei contratos de fornecimento de insumos, obtendo descontos de 15% nos custos de matéria-prima."
+},
+{
+"verb_infinitive": "persuadir",
+"conjugated_form": "persuadi",
+"usage_note": "Focado na mudança de mentalidade ou comportamento de clientes e decisores através de argumentos sólidos.",
+"strong_example_phrase": "Persuadi o comitê gestor a antecipar os investimentos em transformação digital previstos para o ano seguinte."
+},
+{
+"verb_infinitive": "proteger",
+"conjugated_form": "protegi",
+"usage_note": "Relacionado à salvaguarda de interesses corporativos, contratos ou propriedade intelectual.",
+"strong_example_phrase": "Protegi os interesses da empresa em negociações contratuais complexas, inserindo cláusulas blindadas contra riscos."
+},
+{
+"verb_infinitive": "reunir",
+"conjugated_form": "reuni",
+"usage_note": "Agregação de pessoas em prol de objetivos corporativos conjuntos.",
+"strong_example_phrase": "Reuni lideranças de diferentes unidades de negócio em comitês mensais de sinergia e troca de melhores práticas."
+},
+{
+"verb_infinitive": "representar",
+"conjugated_form": "representei",
+"usage_note": "Indica a atuação como porta-voz oficial da marca perante o mercado ou parceiros.",
+"strong_example_phrase": "Representei a empresa em feiras internacionais do setor, gerando mais de 50 leads corporativos de alto padrão."
+},
+{
+"verb_infinitive": "sintonizar",
+"conjugated_form": "sintonizei",
+"usage_note": "Alinhamento fino de expectativas entre clientes e entregas da equipe.",
+"strong_example_phrase": "Sintonizei as expectativas do cliente final com o escopo técnico entregue, zerando reclamações de desvio de projeto."
+},
+{
+"verb_infinitive": "destravar",
+"conjugated_form": "destravi",
+"usage_note": "Focado em desbloquear negociações paralisadas e acelerar fluxos travados.",
+"strong_example_phrase": "Destravi acordos comerciais emperrados há meses no departamento jurídico através de aditivos contratuais simplificados."
+}
+]
+}
+],
+"weak_terms_alerts": [
+{
+"weak_term": "Responsável por",
+"issue_identified": "Passivo, oculta a autonomia e não diz como o resultado foi obtido.",
+"suggested_replacements": ["Gerenciei", "Coordenei", "Executei", "Liderei"]
+},
+{
+"weak_term": "Ajudava em",
+"issue_identified": "Vago e amador; transmite papel coadjuvante e passivo em vez de protagonismo.",
+"suggested_replacements": ["Colaborei", "Apoiei estrategicamente", "Facilitei", "Co-criei"]
+},
+{
+"weak_term": "Participei de",
+"issue_identified": "Termo passivo clássico; estar presente em um projeto não significa gerar valor ou resultado.",
+"suggested_replacements": ["Executei", "Integrei", "Contribuí ativamente", "Colaborei no escopo de"]
+},
+{
+"weak_term": "Apoiava",
+"issue_identified": "Informal e passivo; não quantifica entrega nem demonstra responsabilidade direta.",
+"suggested_replacements": ["Mentorei", "Facilitei", "Dei suporte a", "Colaborei"]
+},
+{
+"weak_term": "Era encarregado de",
+"issue_identified": "Linguagem burocrática e excessivamente passiva; lembra descrição estática de cargo.",
+"suggested_replacements": ["Conduzi", "Administrei", "Respondi por", "Gerenciei"]
+},
+{
+"weak_term": "Trabalhava em",
+"issue_identified": "Genérico; não especifica o nível de profundidade, escopo ou impacto da contribuição.",
+"suggested_replacements": ["Desenvolvi", "Atuei na arquitetura de", "Conduzi frentes de"]
+},
+{
+"weak_term": "Fazendo / Fazia",
+"issue_identified": "Extremamente vago; oculta o valor técnico ou gerencial da atividade realizada.",
+"suggested_replacements": ["Automatizei", "Estruturei", "Modelei", "Criei"]
+},
+{
+"weak_term": "Ajuda em",
+"issue_identified": "Conotação frágil e subalterna; não comunica valor executivo de mercado.",
+"suggested_replacements": ["Otimizei", "Colaborei", "Acelerei"]
+}
+]
+}
