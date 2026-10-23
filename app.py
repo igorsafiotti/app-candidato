@@ -7,6 +7,21 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from hardskills_database import HARD_SKILLS_DATABASE
 
+# Blacklist de termos ambíguos em PT-BR que coincidem com palavras comuns
+# Esses termos não devem ser detectados como skills técnicos
+AMBIGUOUS_PT_TERMS = {
+    'nas', 'para', 'com', 'sem', 'até', 'sobre', 'depois', 'antes', 'entre', 'sob', 'com',
+    'car', 'r', 'as', 'os', 'o', 'a', 'e', 'da', 'do', 'em', 'um', 'uma', 'se', 'na',
+    'que', 'foi', 'ser', 'estar', 'ter', 'haver', 'fazer', 'ir', 'vir', 'dar', 'ver',
+    'lidar', 'também', 'mais', 'muito', 'pouco', 'muitos', 'poucos', 'todo', 'toda',
+    'onde', 'quando', 'como', 'por', 'para', 'sem', 'com', 'sobre', 'sob', 'entre',
+    'pela', 'pelo', 'ao', 'à', 'às', 'aos', 'pela', 'pelas', 'pelos', 'das', 'dos',
+    'pode', 'pode', 'são', 'sao', 'está', 'esta', 'estao', 'estava', 'estavam'
+}
+
+# Lista de termos que exigem match case-sensitive (siglas de 1-3 caracteres)
+CASE_SENSITIVE_TERMS = {'r', 'c', 'k', 'm', 'h', 'w', 'd', 'p', 'b'}
+
 # Configuração da página
 st.set_page_config(
     page_title="ResumePilot",
@@ -132,6 +147,53 @@ def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
         st.error(f"Erro ao extrair texto do PDF: {str(e)}")
         return "", {"risco_parsing": "Alto", "falhas_estruturais": [str(e)], "paginas_com_texto": 0, "total_paginas": 0}
 
+def is_valid_skill_match(skill: str, texto: str) -> bool:
+    """
+    Verifica se um termo técnico deve ser considerado válido no match.
+    Resolve colisões entre palavras comuns em PT-BR e siglas técnicas.
+    """
+    skill_lower = skill.lower()
+    texto_lower = texto.lower()
+    
+    # Se o termo está na blacklist de termos ambíguos PT-BR
+    if skill_lower in AMBIGUOUS_PT_TERMS:
+        # Para termos muito curtos (1-3 chars), exige match case-sensitive
+        if len(skill) <= 3:
+            # Verifica se existe no texto com a exata caixa da skill
+            if skill in texto:
+                # Verifica se está em contexto técnico (seguido de palavras técnicas)
+                pattern = rf"{re.escape(skill)}\s+(?:storage|language|linguagem|sensor|database|api|system|protocol|framework|tool|technology|tech|server|cloud|data|blockchain|dev|ops|sec|infra|net|web|mobile|app|soft|hard|firm|ware)"
+                return bool(re.search(pattern, texto_lower))
+            return False
+        else:
+            # Para termos mais longos ambíguos (como 'lidar', 'nas'), exige contexto técnico
+            pattern = rf"{re.escape(skill_lower)}\s+(?:[a-z]+(?:\s+[a-z]+){{0,3}}|?:[\w\-]+(?:\s+[\w\-]+){{0,2}})"
+            # Verifica se está seguido de contexto técnico comum
+            technical_contexts = [
+                'com', 'com o', 'com a', 'com os', 'com as', 'de', 'do', 'da', 'no', 'na', 'em',
+                'comunicação', 'gestão', 'análise', 'desenvolvimento', 'sistema', 'sistemas',
+                'processo', 'processos', 'projeto', 'projetos', 'equipe', 'equipes', 'time',
+                'plataforma', 'plataformas', 'ferramenta', 'ferramentas', 'metodologia',
+                'metodologias', 'técnica', 'técnicas', 'tecnológico', 'tecnológicos', 'profissional',
+                'profissionais', 'cliente', 'clientes', 'usuário', 'usuários', 'produto', 'produtos',
+                'serviço', 'serviços', 'estratégia', 'planejamento', 'execução', 'implementação',
+                'infraestrutura', 'arquitetura', 'design', 'desenho', 'código', 'códigos', 'dados',
+                'informação', 'informações', 'negócio', 'negócios', 'mercado', 'área', 'setor'
+            ]
+            # Se o termo ambíguo aparecer no texto, verificar contexto
+            if skill_lower in texto_lower:
+                for contexto in technical_contexts:
+                    if contexto in texto_lower:
+                        return True
+            return False
+    
+    # Para termos case-sensitive muito curtos (siglas), exige match exato
+    if skill_lower in CASE_SENSITIVE_TERMS:
+        return skill in texto
+    
+    # Para termos normais, usa word boundary padrão
+    return bool(re.search(rf"\b{re.escape(skill_lower)}\b", texto_lower))
+
 def detect_fluffy_adjectives(resume_text: str, blacklist: Dict[str, Any]) -> List[str]:
     """
     Detecta adjetivos esponjosos no currículo usando a blacklist.
@@ -181,15 +243,10 @@ def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
         similarity = 0.0
     
     # Estratégia 1: Extrair skills da vaga usando whitelist (HARD_SKILLS_DATABASE)
-    job_desc_lower = job_desc.lower()
-    resume_lower = resume_text.lower()
-    
-    # Identificar skills da database presentes na vaga (usando word boundaries)
     hard_skills_vaga = []
     for skill in HARD_SKILLS_DATABASE:
-        skill_lower = skill.lower()
-        # Usar regex com word boundary para evitar falsos positivos por substring
-        if re.search(rf"\b{re.escape(skill_lower)}\b", job_desc_lower):
+        # Usar validação refinada para evitar falsos positivos
+        if is_valid_skill_match(skill, job_desc):
             hard_skills_vaga.append(skill)
     
     # Se encontrou skills da database na vaga, usar essas como referência
@@ -197,13 +254,12 @@ def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
         # Limitar a 15 skills mais relevantes (ou todas se menos que 15)
         hard_skills_vaga = hard_skills_vaga[:15]
         
-        # Verificar quais dessas skills estão no currículo (usando word boundaries)
+        # Verificar quais dessas skills estão no currículo (usando validação refinada)
         hard_skills_encontradas = []
         hard_skills_ausentes = []
         
         for skill in hard_skills_vaga:
-            skill_lower = skill.lower()
-            if re.search(rf"\b{re.escape(skill_lower)}\b", resume_lower):
+            if is_valid_skill_match(skill, resume_text):
                 hard_skills_encontradas.append(skill)
             else:
                 hard_skills_ausentes.append(skill)
@@ -235,24 +291,15 @@ def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
             # Top 15 features mais relevantes da vaga
             hard_skills_vaga = [feature for feature, score in feature_score_pairs[:15]]
             
-            # Verificar presença no currículo (usando word boundaries para termos da database, in para TF-IDF)
+            # Verificar presença no currículo (usando validação refinada para todos os termos)
             hard_skills_encontradas = []
             hard_skills_ausentes = []
             
             for feature in hard_skills_vaga:
-                feature_lower = feature.lower()
-                # Verificar se é um termo da database, usar word boundary
-                if feature_lower in [s.lower() for s in HARD_SKILLS_DATABASE]:
-                    if re.search(rf"\b{re.escape(feature_lower)}\b", resume_lower):
-                        hard_skills_encontradas.append(feature)
-                    else:
-                        hard_skills_ausentes.append(feature)
+                if is_valid_skill_match(feature, resume_text):
+                    hard_skills_encontradas.append(feature)
                 else:
-                    # Para termos não da database (do TF-IDF), usar verificação simples
-                    if feature_lower in resume_lower:
-                        hard_skills_encontradas.append(feature)
-                    else:
-                        hard_skills_ausentes.append(feature)
+                    hard_skills_ausentes.append(feature)
             
             # Calcular score baseado em proporção de skills encontradas
             proporcao_skills = len(hard_skills_encontradas) / 15 if hard_skills_vaga else 0
@@ -268,11 +315,10 @@ def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
             score_prontidao = 0.0
             metodo_usado = "erro"
     
-    # Carregar e usar HARD_SKILLS_DATABASE para currículo (usando word boundaries)
+    # Carregar e usar HARD_SKILLS_DATABASE para currículo (usando validação refinada)
     hard_skills_db_matches = []
     for skill in HARD_SKILLS_DATABASE:
-        skill_lower = skill.lower()
-        if re.search(rf"\b{re.escape(skill_lower)}\b", resume_lower):
+        if is_valid_skill_match(skill, resume_text):
             hard_skills_db_matches.append(skill)
     
     # Veredito baseado no score
