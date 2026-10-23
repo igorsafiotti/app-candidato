@@ -135,6 +135,7 @@ def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
 def detect_fluffy_adjectives(resume_text: str, blacklist: Dict[str, Any]) -> List[str]:
     """
     Detecta adjetivos esponjosos no currículo usando a blacklist.
+    Usa word boundaries para evitar falsos positivos por substring.
     """
     found_adjectives = []
     resume_lower = resume_text.lower()
@@ -144,12 +145,13 @@ def detect_fluffy_adjectives(resume_text: str, blacklist: Dict[str, Any]) -> Lis
             termo = termo_data.get("termo", "").lower()
             variacoes = [v.lower() for v in termo_data.get("variacoes", [])]
             
-            # Verificar termo principal e variações
-            if termo in resume_lower:
+            # Verificar termo principal com word boundary
+            if re.search(rf"\b{re.escape(termo)}\b", resume_lower):
                 found_adjectives.append(termo)
             
+            # Verificar variações com word boundary
             for variacao in variacoes:
-                if variacao in resume_lower:
+                if re.search(rf"\b{re.escape(variacao)}\b", resume_lower):
                     found_adjectives.append(variacao)
     
     return list(set(found_adjectives))  # Remover duplicatas
@@ -159,51 +161,119 @@ def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
     Realiza análise estatística local do currículo usando TF-IDF.
     Motor NLP focado em extração inteligente de palavras-chave.
     """
-    # Stopwords básicas em português
-    pt_stopwords = [
-        'de', 'a', 'o', 'que', 'e', 'do', 'da', 'em', 'um', 'para', 'com', 'não', 'uma', 'os', 'no', 'se', 'na', 'por', 'mais', 'as', 'dos', 'como', 'mas', 'ao', 'ele', 'das', 'seu', 'sua', 'ou', 'quando', 'muito', 'nos', 'já', 'eu', 'também', 'só', 'pelo', 'pela', 'até', 'isso', 'ela', 'entre', 'depois', 'sem', 'mesmo', 'aos', 'seus', 'quem', 'nas', 'me', 'esse', 'eles', 'você', 'essa', 'num', 'nem', 'suas', 'meu', 'às', 'minha', 'numa', 'pelos', 'elas', 'qual', 'nós', 'lhe', 'deles', 'essas', 'esses', 'pelas', 'este', 'dele', 'tu', 'te', 'vocês', 'vos', 'lhes', 'meus', 'minhas', 'teu', 'tua', 'teus', 'tuas', 'nosso', 'nossa', 'nossos', 'nossas', 'dela', 'delas', 'esta', 'estes', 'estas', 'aquele', 'aquela', 'aqueles', 'aquelas', 'isto', 'aquilo'
+    # Stopwords básicas em português (versão estendida com verbos)
+    pt_stopwords_extended = [
+        'de', 'a', 'o', 'que', 'e', 'do', 'da', 'em', 'um', 'para', 'com', 'não', 'uma', 'os', 'no', 'se', 'na', 'por', 'mais', 'as', 'dos', 'como', 'mas', 'ao', 'ele', 'das', 'seu', 'sua', 'ou', 'quando', 'muito', 'nos', 'já', 'eu', 'também', 'só', 'pelo', 'pela', 'até', 'isso', 'ela', 'entre', 'depois', 'sem', 'mesmo', 'aos', 'seus', 'quem', 'nas', 'me', 'esse', 'eles', 'você', 'essa', 'num', 'nem', 'suas', 'meu', 'às', 'minha', 'numa', 'pelos', 'elas', 'qual', 'nós', 'lhe', 'deles', 'essas', 'esses', 'pelas', 'este', 'dele', 'tu', 'te', 'vocês', 'vos', 'lhes', 'meus', 'minhas', 'teu', 'tua', 'teus', 'tuas', 'nosso', 'nossa', 'nossos', 'nossas', 'dela', 'delas', 'esta', 'estes', 'estas', 'aquele', 'aquela', 'aqueles', 'aquelas', 'isto', 'aquilo',
+        # Verbos comuns para filtrar do TF-IDF
+        'acompanhar', 'garantir', 'realizar', 'atuar', 'ser', 'estar', 'ter', 'fazer', 'ir', 'vir', 'dar', 'ver', 'dizer', 'saber', 'querer', 'poder', 'dever', 'precisar', 'trabalhar', 'viver', 'ficar', 'passar', 'chegar', 'sair', 'entrar', 'sair', 'ficar', 'tornar', 'parecer', 'começar', 'terminar', 'acabar', 'conseguir', 'obter', 'levar', 'trazer', 'colocar', 'colocar', 'pôr', 'poder', 'saber', 'conhecer', 'entender', 'compreender', 'pensar', 'crer', 'achar', 'sentir', 'querer', 'desejar', 'esperar', 'procurar', 'buscar', 'encontrar', 'descobrir', 'identificar', 'reconhecer', 'perceber', 'notar', 'observar', 'analisar', 'estudar', 'aprender', 'ensinar', 'explicar', 'mostrar', 'demonstrar', 'provar', 'confirmar', 'verificar', 'validar', 'testar', 'experimentar', 'tentar', 'ajudar', 'apoiar', 'assistir', 'servir', 'atender', 'cuidar', 'tratar', 'lidar', 'resolver', 'solucionar', 'corrigir', 'melhorar', 'otimizar', 'aumentar', 'reduzir', 'crescer', 'desenvolver', 'construir', 'criar', 'produzir', 'fabricar', 'vender', 'comprar', 'adquirir', 'obter', 'ganhar', 'perder', 'ganhar', 'perder', 'receber', 'pagar', 'investir', 'economizar', 'gastar', 'desperdiçar', 'usar', 'utilizar', 'empregar', 'aplicar', 'implementar', 'executar', 'realizar', 'efetuar', 'concluir', 'finalizar', 'completar', 'iniciar', 'começar', 'iniciar', 'lançar', 'criar', 'estabelecer', 'definir', 'determinar', 'decidir', 'escolher', 'selecionar', 'preferir', 'gostar', 'amar', 'odiar', 'detestar', 'aborrecer', 'alegrar', 'comemorar', 'celebrar', 'festejar', 'agradecer', 'agradecer', 'agradecer', 'louvar', 'elogiar', 'criticar', 'julgar', 'avaliar', 'considerar', 'pensar', 'refletir', 'meditar', 'planejar', 'organizar', 'coordenar', 'gerenciar', 'administrar', 'dirigir', 'conduzir', 'liderar', 'comandar', 'controlar', 'supervisionar', 'monitorar', 'acompanhar', 'assessorar', 'aconselhar', 'orientar', 'instruir', 'treinar', 'educar', 'formar', 'preparar', 'capacitar', 'habilitar', 'possibilitar', 'permitir', 'autorizar', 'autorizar', 'permitir', 'liberar', 'libertar', 'desbloquear', 'bloquear', 'impedir', 'evitar', 'prevenir', 'proteger', 'defender', 'atacar', 'agredir', 'ofender', 'insultar', 'ofender', 'humilhar', 'degradar', 'humilhar', 'destruir', 'construir', 'reconstruir', 'reconstruir', 'transformar', 'mudar', 'alterar', 'modificar', 'adaptar', 'ajustar', 'corrigir', 'consertar', 'reparar', 'consertar', 'arrumar', 'organizar', 'limpar', 'organizar', 'arrumar', 'organizar', 'preparar', 'preparar', 'preparar'
     ]
     
-    # Vetorização TF-IDF com n-gramas (1 e 2 palavras) e stopwords em português
+    # Calcular similaridade de cosseno geral (usado como fallback e ponderação)
     try:
         vectorizer = TfidfVectorizer(
-            stop_words=pt_stopwords,
+            stop_words=pt_stopwords_extended,
             ngram_range=(1, 2),
             max_features=100
         )
         tfidf_matrix = vectorizer.fit_transform([resume_text, job_desc])
         similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-        
-        # Extrair as Top 15 features (palavras/bigramas) com maiores pesos da vaga
-        feature_names = vectorizer.get_feature_names_out()
-        tfidf_scores = tfidf_matrix[1].toarray()[0]  # Scores da vaga (índice 1)
-        
-        # Criar lista de (feature, score) e ordenar por score
-        feature_score_pairs = list(zip(feature_names, tfidf_scores))
-        feature_score_pairs.sort(key=lambda x: x[1], reverse=True)
-        
-        # Top 15 features mais relevantes da vaga
-        top_15_features = [feature for feature, score in feature_score_pairs[:15]]
-        
     except Exception as e:
         similarity = 0.0
-        top_15_features = []
     
-    # Verificar presença das Top 15 features no currículo (case-insensitive)
+    # Estratégia 1: Extrair skills da vaga usando whitelist (HARD_SKILLS_DATABASE)
+    job_desc_lower = job_desc.lower()
     resume_lower = resume_text.lower()
-    hard_skills_encontradas = [feature for feature in top_15_features if feature.lower() in resume_lower]
-    hard_skills_ausentes = [feature for feature in top_15_features if feature.lower() not in resume_lower]
     
-    # Carregar e usar HARD_SKILLS_DATABASE
-    hard_skills_db_matches = []
-    resume_lower = resume_text.lower()
+    # Identificar skills da database presentes na vaga (usando word boundaries)
+    hard_skills_vaga = []
     for skill in HARD_SKILLS_DATABASE:
-        if skill.lower() in resume_lower:
-            hard_skills_db_matches.append(skill)
+        skill_lower = skill.lower()
+        # Usar regex com word boundary para evitar falsos positivos por substring
+        if re.search(rf"\b{re.escape(skill_lower)}\b", job_desc_lower):
+            hard_skills_vaga.append(skill)
     
-    # Calcular score: 70% proporção das 15 skills + 30% similaridade de cosseno
-    proporcao_skills = len(hard_skills_encontradas) / 15 if top_15_features else 0
-    score_prontidao = (proporcao_skills * 0.7 + similarity * 0.3) * 10
+    # Se encontrou skills da database na vaga, usar essas como referência
+    if hard_skills_vaga:
+        # Limitar a 15 skills mais relevantes (ou todas se menos que 15)
+        hard_skills_vaga = hard_skills_vaga[:15]
+        
+        # Verificar quais dessas skills estão no currículo (usando word boundaries)
+        hard_skills_encontradas = []
+        hard_skills_ausentes = []
+        
+        for skill in hard_skills_vaga:
+            skill_lower = skill.lower()
+            if re.search(rf"\b{re.escape(skill_lower)}\b", resume_lower):
+                hard_skills_encontradas.append(skill)
+            else:
+                hard_skills_ausentes.append(skill)
+        
+        # Calcular score baseado em proporção de skills da vaga encontradas
+        proporcao_skills = len(hard_skills_encontradas) / len(hard_skills_vaga) if hard_skills_vaga else 0
+        score_prontidao = (proporcao_skills * 0.7 + similarity * 0.3) * 10
+        
+        metodo_usado = "whitelist_database"
+    
+    else:
+        # Estratégia 2: Fallback - usar TF-IDF filtrado com stopwords estendidas
+        try:
+            vectorizer = TfidfVectorizer(
+                stop_words=pt_stopwords_extended,
+                ngram_range=(1, 2),
+                max_features=100
+            )
+            tfidf_matrix = vectorizer.fit_transform([resume_text, job_desc])
+            
+            # Extrair as Top 15 features (palavras/bigramas) com maiores pesos da vaga
+            feature_names = vectorizer.get_feature_names_out()
+            tfidf_scores = tfidf_matrix[1].toarray()[0]  # Scores da vaga (índice 1)
+            
+            # Criar lista de (feature, score) e ordenar por score
+            feature_score_pairs = list(zip(feature_names, tfidf_scores))
+            feature_score_pairs.sort(key=lambda x: x[1], reverse=True)
+            
+            # Top 15 features mais relevantes da vaga
+            hard_skills_vaga = [feature for feature, score in feature_score_pairs[:15]]
+            
+            # Verificar presença no currículo (usando word boundaries para termos da database, in para TF-IDF)
+            hard_skills_encontradas = []
+            hard_skills_ausentes = []
+            
+            for feature in hard_skills_vaga:
+                feature_lower = feature.lower()
+                # Verificar se é um termo da database, usar word boundary
+                if feature_lower in [s.lower() for s in HARD_SKILLS_DATABASE]:
+                    if re.search(rf"\b{re.escape(feature_lower)}\b", resume_lower):
+                        hard_skills_encontradas.append(feature)
+                    else:
+                        hard_skills_ausentes.append(feature)
+                else:
+                    # Para termos não da database (do TF-IDF), usar verificação simples
+                    if feature_lower in resume_lower:
+                        hard_skills_encontradas.append(feature)
+                    else:
+                        hard_skills_ausentes.append(feature)
+            
+            # Calcular score baseado em proporção de skills encontradas
+            proporcao_skills = len(hard_skills_encontradas) / 15 if hard_skills_vaga else 0
+            score_prontidao = (proporcao_skills * 0.7 + similarity * 0.3) * 10
+            
+            metodo_usado = "tfidf_fallback"
+            
+        except Exception as e:
+            similarity = 0.0
+            hard_skills_vaga = []
+            hard_skills_encontradas = []
+            hard_skills_ausentes = []
+            score_prontidao = 0.0
+            metodo_usado = "erro"
+    
+    # Carregar e usar HARD_SKILLS_DATABASE para currículo (usando word boundaries)
+    hard_skills_db_matches = []
+    for skill in HARD_SKILLS_DATABASE:
+        skill_lower = skill.lower()
+        if re.search(rf"\b{re.escape(skill_lower)}\b", resume_lower):
+            hard_skills_db_matches.append(skill)
     
     # Veredito baseado no score
     if score_prontidao >= 7:
@@ -221,10 +291,11 @@ def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str,
             "falhas_estruturais": pdf_metadata.get('falhas_estruturais', [])
         },
         "analise_palavras_chave": {
-            "hard_skills_vaga": top_15_features,  # Top 15 por TF-IDF
+            "hard_skills_vaga": hard_skills_vaga,
             "hard_skills_encontradas": hard_skills_encontradas,
             "hard_skills_ausentes": hard_skills_ausentes,
-            "hard_skills_db_matches": hard_skills_db_matches,  # Skills da database encontradas
+            "hard_skills_db_matches": hard_skills_db_matches,
+            "metodo_extracao": metodo_usado,
             "orientacao_insercao": f"Adicione os {len(hard_skills_ausentes)} termos ausentes para melhorar compatibilidade."
         }
     }
@@ -280,20 +351,30 @@ def display_results(analysis: Dict[str, Any], adjetivos_detectados: List[str]):
     st.divider()
     
     # Análise de Palavras-Chave (Hard Skills)
-    st.subheader("🔑 Análise de Hard Skills (TF-IDF)")
+    st.subheader("🔑 Análise de Hard Skills")
     palavras_chave = analysis.get('analise_palavras_chave', {})
     
     hard_skills_vaga = palavras_chave.get('hard_skills_vaga', [])
     hard_skills_encontradas = palavras_chave.get('hard_skills_encontradas', [])
     hard_skills_ausentes = palavras_chave.get('hard_skills_ausentes', [])
     hard_skills_db_matches = palavras_chave.get('hard_skills_db_matches', [])
+    metodo_extracao = palavras_chave.get('metodo_extracao', 'desconhecido')
     
-    # Métrica clara: X/15 Hard Skills Encontradas
+    # Métrica clara: X/Y Hard Skills Encontradas (Y pode variar se usar whitelist)
+    total_vaga = len(hard_skills_vaga) if hard_skills_vaga else 15
     st.metric(
         label="Hard Skills da Vaga",
-        value=f"{len(hard_skills_encontradas)}/15",
-        delta=f"{(len(hard_skills_encontradas)/15*100):.0f}% encontradas"
+        value=f"{len(hard_skills_encontradas)}/{total_vaga}",
+        delta=f"{(len(hard_skills_encontradas)/total_vaga*100) if total_vaga > 0 else 0:.0f}% encontradas"
     )
+    
+    # Indicar método de extração usado
+    if metodo_extracao == "whitelist_database":
+        st.info("📚 **Método:** Whitelist da Database (Termos técnicos validados)")
+    elif metodo_extracao == "tfidf_fallback":
+        st.info("🔍 **Método:** TF-IDF Fallback (Vaga sem skills da database)")
+    else:
+        st.warning(f"⚠️ **Método:** {metodo_extracao}")
     
     # Exibir TODAS as Hard Skills encontradas
     if hard_skills_encontradas:
