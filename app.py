@@ -53,6 +53,16 @@ PT_STOPWORDS_EXTENDED = [
     'acompanhar', 'garantir', 'realizar', 'atuar', 'ser', 'estar', 'ter', 'fazer', 'ir', 'vir', 'dar', 'ver', 'dizer', 'saber', 'querer', 'poder', 'dever', 'precisar', 'trabalhar', 'viver', 'ficar', 'passar', 'chegar', 'sair', 'entrar', 'tornar', 'parecer', 'começar', 'terminar', 'acabar', 'conseguir', 'obter', 'levar', 'trazer', 'colocar', 'pôr', 'conhecer', 'entender', 'compreender', 'pensar', 'crer', 'achar', 'sentir', 'desejar', 'esperar', 'procurar', 'buscar', 'encontrar', 'descobrir', 'identificar', 'reconhecer', 'perceber', 'notar', 'observar', 'analisar', 'estudar', 'aprender', 'ensinar', 'explicar', 'mostrar', 'demonstrar', 'provar', 'confirmar', 'verificar', 'validar', 'testar', 'experimentar', 'tentar', 'ajudar', 'apoiar', 'assistir', 'servir', 'atender', 'cuidar', 'tratar', 'lidar', 'resolver', 'solucionar', 'corrigir', 'melhorar', 'otimizar', 'aumentar', 'reduzir', 'crescer', 'desenvolver', 'construir', 'criar', 'produzir', 'fabricar', 'vender', 'comprar', 'adquirir', 'ganhar', 'perder', 'receber', 'pagar', 'investir', 'economizar', 'gastar', 'usar', 'utilizar', 'empregar', 'aplicar', 'implementar', 'executar', 'efetuar', 'concluir', 'finalizar', 'completar', 'iniciar', 'lançar', 'estabelecer', 'definir', 'determinar', 'decidir', 'escolher', 'selecionar', 'preferir', 'gostar', 'amar', 'odiar', 'planejar', 'organizar', 'coordenar', 'gerenciar', 'administrar', 'dirigir', 'conduzir', 'liderar', 'comandar', 'controlar', 'supervisionar', 'monitorar', 'assessorar', 'aconselhar', 'orientar', 'instruir', 'treinar', 'educar', 'formar', 'preparar', 'capacitar',
 ]
 
+# Dicionário de equivalências práticas para o ATS
+EQUIVALENCIAS_SKILLS = {
+    'ga4': ['google analytics', 'ga4', 'google analytics 4', 'analytics'],
+    'metodologias ágeis': ['agil', 'agile', 'scrum', 'kanban', 'metodologias ageis', 'gestao agil', 'projetos ageis'],
+    'scrum': ['scrum', 'sprint', 'sprints', 'scrum master', 'daily'],
+    'kanban': ['kanban', 'quadro kanban', 'gestao visual'],
+    'gestão de projetos': ['gestao de projetos', 'project management', 'gerenciamento de projetos', 'gestao de portfolio', 'coordenador de projetos', 'coordenacao de projetos', 'digital project'],
+    'looker': ['looker studio', 'looker', 'google data studio', 'data studio'],
+}
+
 # ==============================================================================
 # CARREGAMENTO DE BASES LOCAIS (CACHE)
 # ==============================================================================
@@ -135,8 +145,17 @@ def _count_whole_word(term: str, texto: str) -> int:
 def _term_in_text(term: str, texto: str) -> bool:
     return _count_whole_word(term, texto) > 0
 
+def normalizar_skill_match(skill: str, texto: str) -> bool:
+    """Verifica correspondência direta ou por equivalências práticas."""
+    skill_lower = skill.lower().strip()
+    if skill_lower in EQUIVALENCIAS_SKILLS:
+        for sinom in EQUIVALENCIAS_SKILLS[skill_lower]:
+            if _term_in_text(sinom, texto):
+                return True
+    return is_valid_skill_match(skill, texto)
+
 def deduplicate_skills_by_subsumption(terms: List[str]) -> List[str]:
-    """Elimina subtermos isolados contidos em n-gramas mais longos (O(N log N))."""
+    """Elimina subtermos isolados contidos em n-gramas maiores (O(N log N))."""
     unique: List[str] = []
     seen = set()
     for term in terms:
@@ -202,9 +221,13 @@ def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
         if pages_with_text < total_pages:
             parsing_risk = "Médio"
             structural_issues.append(f"{total_pages - pages_with_text} página(s) sem texto detetável")
-        if total_pages and total_blocks > total_pages * 12:
+        
+        # Ajuste de sensibilidade: Layouts normais de 2 colunas têm entre 20 e 35 blocos por página
+        if total_pages and total_blocks > total_pages * 45:
             parsing_risk = "Alto"
-            structural_issues.append("Elevada complexidade estrutural de blocos (possível uso de tabelas ou colunas desalinhadas)")
+            structural_issues.append("Complexidade excessiva de blocos (risco de sobreposição de texto)")
+        elif total_pages and total_blocks > total_pages * 15:
+            parsing_risk = "Baixo (Layout em Colunas Detetado)"
 
         return text, {
             "risco_parsing": parsing_risk,
@@ -227,43 +250,41 @@ def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
 # AUDITORIAS DETERMINÍSTICAS (ESTILO JOBSCAN)
 # ==============================================================================
 def auditar_contato_e_presenca(texto_cv: str) -> Dict[str, Any]:
-    """Valida a presença de dados de contacto no terço superior do currículo."""
-    cabecalho = texto_cv[:1200]
-    
-    padrao_email = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    """Valida a presença de dados de contacto no documento inteiro sem truncamento."""
+    padrao_email = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+    tem_email = bool(re.search(padrao_email, texto_cv))
+
     padrao_fone = r'(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\s?)?\d{4}[-.\s]?\d{4}'
-    padrao_linkedin = r'(?:linkedin\.com/in/|linkedin\.com/)[a-zA-Z0-9-_]+'
-    padrao_github = r'(?:github\.com/)[a-zA-Z0-9-_]+'
-    
-    tem_email = bool(re.search(padrao_email, cabecalho))
-    tem_fone = bool(re.search(padrao_fone, cabecalho))
-    tem_linkedin = bool(re.search(padrao_linkedin, cabecalho, re.IGNORECASE))
-    tem_github = bool(re.search(padrao_github, cabecalho, re.IGNORECASE))
-    tem_web = tem_linkedin or tem_github
-    
-    tem_localizacao = bool(re.search(r'\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b', cabecalho, re.IGNORECASE) or 
-                          re.search(r'\b(são paulo|rio de janeiro|curitiba|belo horizonte|porto alegre|brasília|campinas|salvador|recife|fortaleza)\b', cabecalho, re.IGNORECASE))
+    tem_fone = bool(re.search(padrao_fone, texto_cv))
+
+    padrao_web = r'(?:linkedin\.com\/in\/|linkedin\.com\/|github\.com\/|https?:\/\/)'
+    tem_web = bool(re.search(padrao_web, texto_cv, re.IGNORECASE))
+
+    padrao_loc = r'\b(São Paulo|Rio de Janeiro|Curitiba|Belo Horizonte|Porto Alegre|Brasília|Campinas|Salvador|Recife|Fortaleza|SP|RJ|PR|MG|DF|RS)\b'
+    tem_loc = bool(re.search(padrao_loc, _fold_accents(texto_cv), re.IGNORECASE))
 
     return {
         "email": tem_email,
         "telefone": tem_fone,
         "web": tem_web,
-        "localizacao": tem_localizacao,
-        "conformidade_total": tem_email and tem_fone and tem_localizacao
+        "localizacao": tem_loc,
+        "conformidade_total": tem_email and tem_fone and tem_loc
     }
 
 def auditar_secoes_cv(texto_cv: str) -> Dict[str, Any]:
     """Identifica se as secções essenciais de triagem ATS estão presentes."""
+    cv_fold = _fold_accents(texto_cv).lower()
+    
     secoes_alvo = {
-        "Resumo Profissional": [r'\bresumo\b', r'\bperfil profissional\b', r'\bsobre mim\b', r'\bsummary\b'],
-        "Experiência Profissional": [r'\bexperi[êe]ncia(s)?\b', r'\bhister[ií]co profissional\b', r'\bwork experience\b', r'\batua[çc][ãa]o profissional\b'],
-        "Formação Académica": [r'\bforma[çc][ãa]o acad[êe]mica\b', r'\beduca[çc][ãa]o\b', r'\bgradua[çc][ãa]o\b', r'\beducation\b'],
-        "Competências Técnicas": [r'\bcompet[êe]ncias\b', r'\bhabilidades\b', r'\bskills\b', r'\bconhecimentos\b']
+        "Resumo Profissional": [r'\bresumo\b', r'\bperfil\b', r'\bsobre mim\b', r'\bsummary\b', r'\bapresentacao\b'],
+        "Experiência Profissional": [r'\bexperiencia(s)?\b', r'\bhistorico profissional\b', r'\batua[çc]ao\b', r'\bwork experience\b'],
+        "Formação Académica": [r'\bformacao\b', r'\beducacao\b', r'\bgraduacao\b', r'\bacademico\b', r'\beducation\b'],
+        "Competências Técnicas": [r'\bcompetencias\b', r'\bhabilidades\b', r'\bskills\b', r'\bconhecimentos\b', r'\bferramentas\b']
     }
     
     status_secoes = {}
     for secao, padroes in secoes_alvo.items():
-        status_secoes[secao] = any(re.search(p, texto_cv, re.IGNORECASE) for p in padroes)
+        status_secoes[secao] = any(re.search(p, cv_fold, re.IGNORECASE) for p in padroes)
         
     return {
         "secoes": status_secoes,
@@ -419,21 +440,26 @@ def detect_fluffy_adjectives(resume_text: str, blacklist: Dict[str, Any]) -> Lis
     return detected
 
 def extrair_skills_vaga_ranqueadas(texto_vaga: str, texto_cv: str, catalogo_skills: List[str]) -> List[Dict[str, Any]]:
-    """Extrai hard skills da vaga ranqueando-as pela frequência em que aparecem no anúncio."""
+    """Extrai hard skills da vaga ranqueando-as pela frequência e aplicando equivalências."""
     candidatos_vaga = [skill for skill in catalogo_skills if is_valid_skill_match(skill, texto_vaga)]
     candidatos_vaga = deduplicate_skills_by_subsumption(candidatos_vaga)
     
     skills_analise = []
     for skill in candidatos_vaga:
         qtd_vaga = _count_whole_word(skill, texto_vaga)
-        qtd_cv = _count_whole_word(skill, texto_cv)
+        
+        # Usa correspondência por sinónimos e equivalências
+        presente = normalizar_skill_match(skill, texto_cv)
+        qtd_cv = _count_whole_word(skill, texto_cv) if presente else 0
+        if presente and qtd_cv == 0:
+            qtd_cv = 1  # Atendido por termo equivalente
         
         impacto = "Alto" if qtd_vaga >= 3 else ("Médio" if qtd_vaga == 2 else "Baixo")
         skills_analise.append({
             "skill": skill,
             "frequencia_vaga": qtd_vaga,
             "frequencia_cv": qtd_cv,
-            "presente_no_cv": qtd_cv > 0,
+            "presente_no_cv": presente,
             "impacto": impacto
         })
         
@@ -586,7 +612,6 @@ if analyze_button:
                 if not diag["skills_ranqueadas"]:
                     st.info("Nenhuma hard skill da base técnica foi localizada no texto da vaga.")
                 else:
-                    # Cabeçalho da tabela
                     c1, c2, c3, c4 = st.columns([3, 2, 2, 2])
                     c1.markdown("**Competência (Hard Skill)**")
                     c2.markdown("**Frequência na Vaga**")
