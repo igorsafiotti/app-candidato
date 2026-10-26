@@ -1,13 +1,26 @@
-import streamlit as st
-import fitz  # PyMuPDF
 import json
-from typing import Dict, Any, List, Tuple
 import re
+import unicodedata
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import fitz  # PyMuPDF
+import streamlit as st
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
 from hardskills_database import HARD_SKILLS_DATABASE
 
-# Termos da whitelist que colidem com preposições, artigos, verbos ou palavras comuns em PT-BR.
+BASE_DIR = Path(__file__).resolve().parent
+
+# Configuração da página Streamlit
+st.set_page_config(
+    page_title="ResumePilot AI - Diagnóstico ATS",
+    page_icon="📄",
+    layout="wide"
+)
+
+# Termos da whitelist que colidem com preposições, artigos, verbos ou palavras comuns em PT-BR
 AMBIGUOUS_PT_TERMS = {
     'nas', 'para', 'com', 'sem', 'até', 'sobre', 'depois', 'antes', 'entre', 'sob',
     'car', 'r', 'as', 'os', 'o', 'a', 'e', 'da', 'do', 'em', 'um', 'uma', 'se', 'na',
@@ -18,7 +31,6 @@ AMBIGUOUS_PT_TERMS = {
     'estava', 'estavam', 'nos', 'no', 'me', 'te', 'lhe', 'já', 'so', 'só',
 }
 
-# Qualificadores técnicos adjacentes (1–2 tokens) que autorizam termos ambíguos/curtos.
 GENERIC_TECH_QUALIFIERS = (
     'storage', 'armazenamento', 'arquivamento', 'network', 'rede', 'sensor', 'sensors',
     'sensores', 'linguagem', 'language', 'languages', 'programming', 'programação',
@@ -36,147 +48,62 @@ SKILL_TECH_QUALIFIERS = {
     'as': ('9100', 'as9100', 'aerospace'),
 }
 
-# Configuração da página
-st.set_page_config(
-    page_title="ResumePilot",
-    page_icon="📄",
-    layout="wide"
-)
+PT_STOPWORDS_EXTENDED = [
+    'de', 'a', 'o', 'que', 'e', 'do', 'da', 'em', 'um', 'para', 'com', 'não', 'uma', 'os', 'no', 'se', 'na', 'por', 'mais', 'as', 'dos', 'como', 'mas', 'ao', 'ele', 'das', 'seu', 'sua', 'ou', 'quando', 'muito', 'nos', 'já', 'eu', 'também', 'só', 'pelo', 'pela', 'até', 'isso', 'ela', 'entre', 'depois', 'sem', 'mesmo', 'aos', 'seus', 'quem', 'nas', 'me', 'esse', 'eles', 'você', 'essa', 'num', 'nem', 'suas', 'meu', 'às', 'minha', 'numa', 'pelos', 'elas', 'qual', 'nós', 'lhe', 'deles', 'essas', 'esses', 'pelas', 'este', 'dele', 'tu', 'te', 'vocês', 'vos', 'lhes', 'meus', 'minhas', 'teu', 'tua', 'teus', 'tuas', 'nosso', 'nossa', 'nossos', 'nossas', 'dela', 'delas', 'esta', 'estes', 'estas', 'aquele', 'aquela', 'aqueles', 'aquelas', 'isto', 'aquilo',
+    'acompanhar', 'garantir', 'realizar', 'atuar', 'ser', 'estar', 'ter', 'fazer', 'ir', 'vir', 'dar', 'ver', 'dizer', 'saber', 'querer', 'poder', 'dever', 'precisar', 'trabalhar', 'viver', 'ficar', 'passar', 'chegar', 'sair', 'entrar', 'tornar', 'parecer', 'começar', 'terminar', 'acabar', 'conseguir', 'obter', 'levar', 'trazer', 'colocar', 'pôr', 'conhecer', 'entender', 'compreender', 'pensar', 'crer', 'achar', 'sentir', 'desejar', 'esperar', 'procurar', 'buscar', 'encontrar', 'descobrir', 'identificar', 'reconhecer', 'perceber', 'notar', 'observar', 'analisar', 'estudar', 'aprender', 'ensinar', 'explicar', 'mostrar', 'demonstrar', 'provar', 'confirmar', 'verificar', 'validar', 'testar', 'experimentar', 'tentar', 'ajudar', 'apoiar', 'assistir', 'servir', 'atender', 'cuidar', 'tratar', 'lidar', 'resolver', 'solucionar', 'corrigir', 'melhorar', 'otimizar', 'aumentar', 'reduzir', 'crescer', 'desenvolver', 'construir', 'criar', 'produzir', 'fabricar', 'vender', 'comprar', 'adquirir', 'ganhar', 'perder', 'receber', 'pagar', 'investir', 'economizar', 'gastar', 'usar', 'utilizar', 'empregar', 'aplicar', 'implementar', 'executar', 'efetuar', 'concluir', 'finalizar', 'completar', 'iniciar', 'lançar', 'estabelecer', 'definir', 'determinar', 'decidir', 'escolher', 'selecionar', 'preferir', 'gostar', 'amar', 'odiar', 'planejar', 'organizar', 'coordenar', 'gerenciar', 'administrar', 'dirigir', 'conduzir', 'liderar', 'comandar', 'controlar', 'supervisionar', 'monitorar', 'assessorar', 'aconselhar', 'orientar', 'instruir', 'treinar', 'educar', 'formar', 'preparar', 'capacitar',
+]
 
-# Sidebar para upload e inputs
-st.sidebar.title("ResumePilot")
-st.sidebar.markdown("Análise Estatística de Currículos")
-
-# Upload do PDF
-uploaded_file = st.sidebar.file_uploader(
-    "Upload do Currículo (PDF)",
-    type=['pdf'],
-    help="Carregue seu currículo em formato PDF"
-)
-
-# Text area para a descrição da vaga
-job_description = st.sidebar.text_area(
-    "Descrição da Vaga (Job Description)",
-    height=300,
-    placeholder="Cole aqui o texto completo da descrição da vaga..."
-)
-
-# Botão de análise
-analyze_button = st.sidebar.button("Analisar Currículo", type="primary")
+# ==============================================================================
+# CARREGAMENTO DE BASES LOCAIS (CACHE)
+# ==============================================================================
+def _load_json_file(filename: str, default: Any) -> Any:
+    path = BASE_DIR / filename
+    try:
+        with open(path, 'r', encoding='utf-8') as handle:
+            return json.load(handle)
+    except FileNotFoundError:
+        st.warning(f"Ficheiro {filename} não encontrado. Algumas funcionalidades podem estar limitadas.")
+        return default
+    except json.JSONDecodeError as exc:
+        st.error(f"Erro ao ler {filename}: {exc}")
+        return default
+    except Exception as exc:
+        st.error(f"Erro inesperado ao carregar {filename}: {exc}")
+        return default
 
 @st.cache_data
 def load_blacklist_adjetivos() -> Dict[str, Any]:
-    """Carrega a blacklist de adjetivos do arquivo JSON com cache."""
-    try:
-        with open('blacklist_adjetivos.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        st.warning("Arquivo blacklist_adjetivos.json não encontrado. Usando lista vazia.")
-        return {"categorias": []}
-    except json.JSONDecodeError as e:
-        st.error(f"Erro ao ler blacklist_adjetivos.json: {str(e)}")
-        return {"categorias": []}
-    except Exception as e:
-        st.error(f"Erro inesperado ao carregar blacklist: {str(e)}")
-        return {"categorias": []}
+    return _load_json_file('blacklist_adjetivos.json', {"categorias": []})
 
 @st.cache_data
 def load_taxonomy() -> Dict[str, Any]:
-    """Carrega a taxonomia do arquivo JSON com cache."""
-    try:
-        with open('taxonomy.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        st.warning("Arquivo taxonomy.json não encontrado. Algumas funcionalidades podem estar limitadas.")
-        return {"areas": [], "seniority_modifiers": []}
-    except json.JSONDecodeError as e:
-        st.error(f"Erro ao ler taxonomy.json: {str(e)}")
-        return {"areas": [], "seniority_modifiers": []}
-    except Exception as e:
-        st.error(f"Erro inesperado ao carregar taxonomia: {str(e)}")
-        return {"areas": [], "seniority_modifiers": []}
+    return _load_json_file('taxonomy.json', {"areas": [], "seniority_modifiers": []})
 
 @st.cache_data
 def load_credentials_database() -> Dict[str, Any]:
-    """Carrega a base de dados de credenciais do arquivo JSON com cache."""
-    try:
-        with open('credentials_database.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        st.warning("Arquivo credentials_database.json não encontrado. Algumas funcionalidades podem estar limitadas.")
-        return {}
-    except json.JSONDecodeError as e:
-        st.error(f"Erro ao ler credentials_database.json: {str(e)}")
-        return {}
-    except Exception as e:
-        st.error(f"Erro inesperado ao carregar credenciais: {str(e)}")
-        return {}
+    return _load_json_file('credentials_database.json', {"categorias": []})
 
-def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
-    """
-    Extrai todo o texto cru de um arquivo PDF usando PyMuPDF (fitz).
-    Retorna o texto e um dicionário com metadados de parsing.
-    """
-    try:
-        pdf_document = fitz.open(stream=pdf_file.read(), filetype="pdf")
-        text = ""
-        total_pages = len(pdf_document)
-        pages_with_text = 0
-        total_blocks = 0
-        
-        for page_num in range(total_pages):
-            page = pdf_document[page_num]
-            page_text = page.get_text()
-            text += page_text
-            
-            # Contar blocos de texto para avaliar complexidade
-            blocks = page.get_text("blocks")
-            if blocks:
-                total_blocks += len(blocks)
-            
-            if page_text.strip():
-                pages_with_text += 1
-        
-        pdf_document.close()
-        
-        # Avaliar risco de parsing
-        parsing_risk = "Baixo"
-        structural_issues = []
-        
-        if pages_with_text < total_pages:
-            parsing_risk = "Médio"
-            structural_issues.append(f"{total_pages - pages_with_text} página(s) sem texto detectado")
-        
-        if total_blocks > total_pages * 10:
-            parsing_risk = "Alto"
-            structural_issues.append("Alta complexidade de blocos de texto (possível uso de múltiplas colunas)")
-        
-        return text, {
-            "risco_parsing": parsing_risk,
-            "falhas_estruturais": structural_issues,
-            "paginas_com_texto": pages_with_text,
-            "total_paginas": total_pages
-        }
-    except Exception as e:
-        st.error(f"Erro ao extrair texto do PDF: {str(e)}")
-        return "", {"risco_parsing": "Alto", "falhas_estruturais": [str(e)], "paginas_com_texto": 0, "total_paginas": 0}
+@st.cache_data
+def load_action_verbs() -> Dict[str, Any]:
+    return _load_json_file('executive_action_verbs.json', {"categories": [], "weak_terms_alerts": []})
+
+# ==============================================================================
+# NORMALIZAÇÃO E MATCHING REGEX DETERMINÍSTICO
+# ==============================================================================
+def _fold_accents(texto: str) -> str:
+    normalized = unicodedata.normalize('NFKD', texto)
+    return ''.join(char for char in normalized if not unicodedata.combining(char))
 
 def _skill_word_pattern(skill: str) -> str:
-    """Regex com limites de palavra estritos para um termo da whitelist."""
     return rf"\b{re.escape(skill)}\b"
 
-
 def _requires_guarded_skill_match(skill: str) -> bool:
-    """Siglas curtas (< 4) e termos ambíguos PT-BR exigem maiúsculas ou qualificador técnico."""
     return len(skill) < 4 or skill.lower() in AMBIGUOUS_PT_TERMS
 
-
 def _adjacent_qualifier_window(texto: str, start: int, end: int) -> str:
-    """Retorna até 2 tokens imediatamente antes e depois da ocorrência."""
     left_tokens = re.findall(r"[\w+#.\-]+", texto[:start])[-2:]
     right_tokens = re.findall(r"[\w+#.\-]+", texto[end:])[:2]
     return " ".join(left_tokens + right_tokens).lower()
-
 
 def _has_adjacent_tech_qualifier(skill: str, texto: str, start: int, end: int) -> bool:
     window = _adjacent_qualifier_window(texto, start, end)
@@ -185,12 +112,7 @@ def _has_adjacent_tech_qualifier(skill: str, texto: str, start: int, end: int) -
     qualifiers = SKILL_TECH_QUALIFIERS.get(skill.lower(), ()) + GENERIC_TECH_QUALIFIERS
     return any(re.search(_skill_word_pattern(q), window) for q in qualifiers)
 
-
 def is_valid_skill_match(skill: str, texto: str) -> bool:
-    """
-    Verifica se um termo técnico deve ser considerado válido no match.
-    Resolve colisões entre palavras comuns em PT-BR e siglas técnicas.
-    """
     if not skill or not texto:
         return False
 
@@ -205,12 +127,16 @@ def is_valid_skill_match(skill: str, texto: str) -> bool:
 
     return bool(re.search(_skill_word_pattern(skill.lower()), texto.lower()))
 
+def _count_whole_word(term: str, texto: str) -> int:
+    if not term or not texto:
+        return 0
+    return len(re.findall(_skill_word_pattern(_fold_accents(term.strip())), _fold_accents(texto), flags=re.IGNORECASE))
+
+def _term_in_text(term: str, texto: str) -> bool:
+    return _count_whole_word(term, texto) > 0
 
 def deduplicate_skills_by_subsumption(terms: List[str]) -> List[str]:
-    """
-    Remove subtermos isolados quando um n-grama mais longo já os contém
-    (ex.: 'licitação' some se 'processos de licitação' estiver na lista).
-    """
+    """Elimina subtermos isolados contidos em n-gramas mais longos (O(N log N))."""
     unique: List[str] = []
     seen = set()
     for term in terms:
@@ -219,345 +145,584 @@ def deduplicate_skills_by_subsumption(terms: List[str]) -> List[str]:
             unique.append(term)
             seen.add(key)
 
-    drop_indexes = set()
-    for i, shorter in enumerate(unique):
-        shorter_norm = shorter.lower().strip()
-        for j, longer in enumerate(unique):
-            if i == j:
-                continue
-            longer_norm = longer.lower().strip()
-            if len(longer_norm) <= len(shorter_norm):
-                continue
-            if re.search(_skill_word_pattern(shorter_norm), longer_norm):
-                drop_indexes.add(i)
-                break
+    ranked = sorted(unique, key=lambda item: len(item.strip()), reverse=True)
+    accepted: List[str] = []
+    accepted_normalized: List[str] = []
+    kept_keys = set()
 
-    return [term for i, term in enumerate(unique) if i not in drop_indexes]
+    for term in ranked:
+        normalized = term.lower().strip()
+        pattern = re.compile(_skill_word_pattern(normalized))
+        if any(pattern.search(longer) for longer in accepted_normalized):
+            continue
+        accepted.append(term)
+        accepted_normalized.append(normalized)
+        kept_keys.add(normalized)
 
+    return [term for term in unique if term.lower().strip() in kept_keys]
 
-def extract_matching_skills(texto: str, catalog: List[str]) -> List[str]:
-    """Extrai skills do catálogo presentes no texto, já desduplicadas por subsunção."""
-    found = [skill for skill in catalog if is_valid_skill_match(skill, texto)]
-    return deduplicate_skills_by_subsumption(found)
-
-def detect_fluffy_adjectives(resume_text: str, blacklist: Dict[str, Any]) -> List[str]:
-    """
-    Detecta adjetivos esponjosos no currículo usando a blacklist.
-    Usa word boundaries para evitar falsos positivos por substring.
-    """
-    found_adjectives = []
-    resume_lower = resume_text.lower()
-    
-    for categoria in blacklist.get("categorias", []):
-        for termo_data in categoria.get("termos", []):
-            termo = termo_data.get("termo", "").lower()
-            variacoes = [v.lower() for v in termo_data.get("variacoes", [])]
-            
-            # Verificar termo principal com word boundary
-            if re.search(rf"\b{re.escape(termo)}\b", resume_lower):
-                found_adjectives.append(termo)
-            
-            # Verificar variações com word boundary
-            for variacao in variacoes:
-                if re.search(rf"\b{re.escape(variacao)}\b", resume_lower):
-                    found_adjectives.append(variacao)
-    
-    return list(set(found_adjectives))  # Remover duplicatas
-
-def analyze_resume_stat(resume_text: str, job_desc: str, pdf_metadata: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Realiza análise estatística local do currículo usando TF-IDF.
-    Motor NLP focado em extração inteligente de palavras-chave.
-    """
-    # Stopwords básicas em português (versão estendida com verbos)
-    pt_stopwords_extended = [
-        'de', 'a', 'o', 'que', 'e', 'do', 'da', 'em', 'um', 'para', 'com', 'não', 'uma', 'os', 'no', 'se', 'na', 'por', 'mais', 'as', 'dos', 'como', 'mas', 'ao', 'ele', 'das', 'seu', 'sua', 'ou', 'quando', 'muito', 'nos', 'já', 'eu', 'também', 'só', 'pelo', 'pela', 'até', 'isso', 'ela', 'entre', 'depois', 'sem', 'mesmo', 'aos', 'seus', 'quem', 'nas', 'me', 'esse', 'eles', 'você', 'essa', 'num', 'nem', 'suas', 'meu', 'às', 'minha', 'numa', 'pelos', 'elas', 'qual', 'nós', 'lhe', 'deles', 'essas', 'esses', 'pelas', 'este', 'dele', 'tu', 'te', 'vocês', 'vos', 'lhes', 'meus', 'minhas', 'teu', 'tua', 'teus', 'tuas', 'nosso', 'nossa', 'nossos', 'nossas', 'dela', 'delas', 'esta', 'estes', 'estas', 'aquele', 'aquela', 'aqueles', 'aquelas', 'isto', 'aquilo',
-        # Verbos comuns para filtrar do TF-IDF
-        'acompanhar', 'garantir', 'realizar', 'atuar', 'ser', 'estar', 'ter', 'fazer', 'ir', 'vir', 'dar', 'ver', 'dizer', 'saber', 'querer', 'poder', 'dever', 'precisar', 'trabalhar', 'viver', 'ficar', 'passar', 'chegar', 'sair', 'entrar', 'sair', 'ficar', 'tornar', 'parecer', 'começar', 'terminar', 'acabar', 'conseguir', 'obter', 'levar', 'trazer', 'colocar', 'colocar', 'pôr', 'poder', 'saber', 'conhecer', 'entender', 'compreender', 'pensar', 'crer', 'achar', 'sentir', 'querer', 'desejar', 'esperar', 'procurar', 'buscar', 'encontrar', 'descobrir', 'identificar', 'reconhecer', 'perceber', 'notar', 'observar', 'analisar', 'estudar', 'aprender', 'ensinar', 'explicar', 'mostrar', 'demonstrar', 'provar', 'confirmar', 'verificar', 'validar', 'testar', 'experimentar', 'tentar', 'ajudar', 'apoiar', 'assistir', 'servir', 'atender', 'cuidar', 'tratar', 'lidar', 'resolver', 'solucionar', 'corrigir', 'melhorar', 'otimizar', 'aumentar', 'reduzir', 'crescer', 'desenvolver', 'construir', 'criar', 'produzir', 'fabricar', 'vender', 'comprar', 'adquirir', 'obter', 'ganhar', 'perder', 'ganhar', 'perder', 'receber', 'pagar', 'investir', 'economizar', 'gastar', 'desperdiçar', 'usar', 'utilizar', 'empregar', 'aplicar', 'implementar', 'executar', 'realizar', 'efetuar', 'concluir', 'finalizar', 'completar', 'iniciar', 'começar', 'iniciar', 'lançar', 'criar', 'estabelecer', 'definir', 'determinar', 'decidir', 'escolher', 'selecionar', 'preferir', 'gostar', 'amar', 'odiar', 'detestar', 'aborrecer', 'alegrar', 'comemorar', 'celebrar', 'festejar', 'agradecer', 'agradecer', 'agradecer', 'louvar', 'elogiar', 'criticar', 'julgar', 'avaliar', 'considerar', 'pensar', 'refletir', 'meditar', 'planejar', 'organizar', 'coordenar', 'gerenciar', 'administrar', 'dirigir', 'conduzir', 'liderar', 'comandar', 'controlar', 'supervisionar', 'monitorar', 'acompanhar', 'assessorar', 'aconselhar', 'orientar', 'instruir', 'treinar', 'educar', 'formar', 'preparar', 'capacitar', 'habilitar', 'possibilitar', 'permitir', 'autorizar', 'autorizar', 'permitir', 'liberar', 'libertar', 'desbloquear', 'bloquear', 'impedir', 'evitar', 'prevenir', 'proteger', 'defender', 'atacar', 'agredir', 'ofender', 'insultar', 'ofender', 'humilhar', 'degradar', 'humilhar', 'destruir', 'construir', 'reconstruir', 'reconstruir', 'transformar', 'mudar', 'alterar', 'modificar', 'adaptar', 'ajustar', 'corrigir', 'consertar', 'reparar', 'consertar', 'arrumar', 'organizar', 'limpar', 'organizar', 'arrumar', 'organizar', 'preparar', 'preparar', 'preparar'
-    ]
-    
-    # Calcular similaridade de cosseno geral (usado como fallback e ponderação)
+# ==============================================================================
+# EXTRAÇÃO DE TEXTO DO PDF (ORDENAÇÃO COLUNAR)
+# ==============================================================================
+def extract_text_from_pdf(pdf_file) -> Tuple[str, Dict[str, Any]]:
     try:
-        vectorizer = TfidfVectorizer(
-            stop_words=pt_stopwords_extended,
-            ngram_range=(1, 2),
-            max_features=100
-        )
-        tfidf_matrix = vectorizer.fit_transform([resume_text, job_desc])
-        similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-    except Exception as e:
-        similarity = 0.0
-    
-    # Estratégia 1: Extrair skills da vaga usando whitelist (HARD_SKILLS_DATABASE)
-    hard_skills_vaga = extract_matching_skills(job_desc, HARD_SKILLS_DATABASE)
-    
-    # Se encontrou skills da database na vaga, usar essas como referência
-    if hard_skills_vaga:
-        # Limitar a 15 skills mais relevantes (ou todas se menos que 15)
-        hard_skills_vaga = hard_skills_vaga[:15]
-        
-        # Verificar quais dessas skills estão no currículo (usando validação refinada)
-        hard_skills_encontradas = []
-        hard_skills_ausentes = []
-        
-        for skill in hard_skills_vaga:
-            if is_valid_skill_match(skill, resume_text):
-                hard_skills_encontradas.append(skill)
-            else:
-                hard_skills_ausentes.append(skill)
+        if hasattr(pdf_file, 'seek'):
+            pdf_file.seek(0)
+        pdf_bytes = pdf_file.read()
+        if hasattr(pdf_file, 'seek'):
+            pdf_file.seek(0)
 
-        hard_skills_encontradas = deduplicate_skills_by_subsumption(hard_skills_encontradas)
-        hard_skills_ausentes = deduplicate_skills_by_subsumption(hard_skills_ausentes)
-        
-        # Calcular score baseado em proporção de skills da vaga encontradas
-        proporcao_skills = len(hard_skills_encontradas) / len(hard_skills_vaga) if hard_skills_vaga else 0
-        score_prontidao = (proporcao_skills * 0.7 + similarity * 0.3) * 10
-        
-        metodo_usado = "whitelist_database"
-    
-    else:
-        # Estratégia 2: Fallback - usar TF-IDF filtrado com stopwords estendidas
-        try:
-            vectorizer = TfidfVectorizer(
-                stop_words=pt_stopwords_extended,
-                ngram_range=(1, 2),
-                max_features=100
-            )
-            tfidf_matrix = vectorizer.fit_transform([resume_text, job_desc])
-            
-            # Extrair as Top 15 features (palavras/bigramas) com maiores pesos da vaga
-            feature_names = vectorizer.get_feature_names_out()
-            tfidf_scores = tfidf_matrix[1].toarray()[0]  # Scores da vaga (índice 1)
-            
-            # Criar lista de (feature, score) e ordenar por score
-            feature_score_pairs = list(zip(feature_names, tfidf_scores))
-            feature_score_pairs.sort(key=lambda x: x[1], reverse=True)
-            
-            # Candidatos TF-IDF, já filtrados contra colisões PT-BR e desduplicados por subsunção
-            tfidf_candidates = [
-                feature for feature, score in feature_score_pairs
-                if score > 0 and is_valid_skill_match(feature, job_desc)
+        pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        page_texts: List[str] = []
+        total_pages = len(pdf_document)
+        pages_with_text = 0
+        total_blocks = 0
+        text_blocks_count = 0
+
+        for page in pdf_document:
+            raw_blocks = page.get_text("blocks") or []
+            total_blocks += len(raw_blocks)
+            valid_blocks = [
+                block for block in raw_blocks
+                if isinstance(block, (list, tuple)) and len(block) > 6 and block[6] == 0
             ]
-            hard_skills_vaga = deduplicate_skills_by_subsumption(tfidf_candidates)[:15]
-            
-            # Verificar presença no currículo (usando validação refinada para todos os termos)
-            hard_skills_encontradas = []
-            hard_skills_ausentes = []
-            
-            for feature in hard_skills_vaga:
-                if is_valid_skill_match(feature, resume_text):
-                    hard_skills_encontradas.append(feature)
-                else:
-                    hard_skills_ausentes.append(feature)
+            # Ordena por coluna horizontal (aproximação a 50px) e depois verticalmente
+            valid_blocks.sort(key=lambda b: (round(b[0] / 50) * 50, b[1]))
+            text_blocks_count += len(valid_blocks)
+            page_text = "\n".join(str(block[4]).strip() for block in valid_blocks if str(block[4]).strip())
+            if page_text:
+                pages_with_text += 1
+                page_texts.append(page_text)
 
-            hard_skills_encontradas = deduplicate_skills_by_subsumption(hard_skills_encontradas)
-            hard_skills_ausentes = deduplicate_skills_by_subsumption(hard_skills_ausentes)
-            
-            # Calcular score baseado em proporção de skills encontradas
-            proporcao_skills = len(hard_skills_encontradas) / len(hard_skills_vaga) if hard_skills_vaga else 0
-            score_prontidao = (proporcao_skills * 0.7 + similarity * 0.3) * 10
-            
-            metodo_usado = "tfidf_fallback"
-            
-        except Exception as e:
-            similarity = 0.0
-            hard_skills_vaga = []
-            hard_skills_encontradas = []
-            hard_skills_ausentes = []
-            score_prontidao = 0.0
-            metodo_usado = "erro"
-    
-    # Skills da whitelist presentes no currículo, sem subtermos redundantes
-    hard_skills_db_matches = extract_matching_skills(resume_text, HARD_SKILLS_DATABASE)
-    
-    # Veredito baseado no score
-    if score_prontidao >= 7:
-        veredito = "Currículo com boa compatibilidade estatística. As palavras-chave da vaga estão bem representadas."
-    elif score_prontidao >= 4:
-        veredito = "Currículo com compatibilidade moderada. Algumas palavras-chave importantes estão ausentes."
-    else:
-        veredito = "Currículo com baixa compatibilidade estatística. Considere revisar palavras-chave e estrutura."
-    
-    return {
-        "score_prontidao": score_prontidao,
-        "veredito_10_segundos": veredito,
-        "diagnostico_ats": {
-            "risco_parsing": pdf_metadata.get('risco_parsing', 'Médio'),
-            "falhas_estruturais": pdf_metadata.get('falhas_estruturais', [])
-        },
-        "analise_palavras_chave": {
-            "hard_skills_vaga": hard_skills_vaga,
-            "hard_skills_encontradas": hard_skills_encontradas,
-            "hard_skills_ausentes": hard_skills_ausentes,
-            "hard_skills_db_matches": hard_skills_db_matches,
-            "metodo_extracao": metodo_usado,
-            "orientacao_insercao": f"Adicione os {len(hard_skills_ausentes)} termos ausentes para melhorar compatibilidade."
+        pdf_document.close()
+        text = "\n\n".join(page_texts)
+
+        parsing_risk = "Baixo"
+        structural_issues: List[str] = []
+        if pages_with_text < total_pages:
+            parsing_risk = "Médio"
+            structural_issues.append(f"{total_pages - pages_with_text} página(s) sem texto detetável")
+        if total_pages and total_blocks > total_pages * 12:
+            parsing_risk = "Alto"
+            structural_issues.append("Elevada complexidade estrutural de blocos (possível uso de tabelas ou colunas desalinhadas)")
+
+        return text, {
+            "risco_parsing": parsing_risk,
+            "falhas_estruturais": structural_issues,
+            "paginas_com_texto": pages_with_text,
+            "total_paginas": total_pages,
+            "blocos_texto": text_blocks_count,
         }
+    except Exception as exc:
+        st.error(f"Erro ao extrair texto do PDF: {exc}")
+        return "", {
+            "risco_parsing": "Alto",
+            "falhas_estruturais": [str(exc)],
+            "paginas_com_texto": 0,
+            "total_paginas": 0,
+            "blocos_texto": 0,
+        }
+
+# ==============================================================================
+# AUDITORIAS DETERMINÍSTICAS (ESTILO JOBSCAN)
+# ==============================================================================
+def auditar_contato_e_presenca(texto_cv: str) -> Dict[str, Any]:
+    """Valida a presença de dados de contacto no terço superior do currículo."""
+    cabecalho = texto_cv[:1200]
+    
+    padrao_email = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    padrao_fone = r'(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\s?)?\d{4}[-.\s]?\d{4}'
+    padrao_linkedin = r'(?:linkedin\.com/in/|linkedin\.com/)[a-zA-Z0-9-_]+'
+    padrao_github = r'(?:github\.com/)[a-zA-Z0-9-_]+'
+    
+    tem_email = bool(re.search(padrao_email, cabecalho))
+    tem_fone = bool(re.search(padrao_fone, cabecalho))
+    tem_linkedin = bool(re.search(padrao_linkedin, cabecalho, re.IGNORECASE))
+    tem_github = bool(re.search(padrao_github, cabecalho, re.IGNORECASE))
+    tem_web = tem_linkedin or tem_github
+    
+    tem_localizacao = bool(re.search(r'\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b', cabecalho, re.IGNORECASE) or 
+                          re.search(r'\b(são paulo|rio de janeiro|curitiba|belo horizonte|porto alegre|brasília|campinas|salvador|recife|fortaleza)\b', cabecalho, re.IGNORECASE))
+
+    return {
+        "email": tem_email,
+        "telefone": tem_fone,
+        "web": tem_web,
+        "localizacao": tem_localizacao,
+        "conformidade_total": tem_email and tem_fone and tem_localizacao
     }
 
-def display_results(analysis: Dict[str, Any], adjetivos_detectados: List[str]):
-    """
-    Exibe os resultados da análise no dashboard do Streamlit.
-    """
-    st.header("📊 Resultados da Análise")
+def auditar_secoes_cv(texto_cv: str) -> Dict[str, Any]:
+    """Identifica se as secções essenciais de triagem ATS estão presentes."""
+    secoes_alvo = {
+        "Resumo Profissional": [r'\bresumo\b', r'\bperfil profissional\b', r'\bsobre mim\b', r'\bsummary\b'],
+        "Experiência Profissional": [r'\bexperi[êe]ncia(s)?\b', r'\bhister[ií]co profissional\b', r'\bwork experience\b', r'\batua[çc][ãa]o profissional\b'],
+        "Formação Académica": [r'\bforma[çc][ãa]o acad[êe]mica\b', r'\beduca[çc][ãa]o\b', r'\bgradua[çc][ãa]o\b', r'\beducation\b'],
+        "Competências Técnicas": [r'\bcompet[êe]ncias\b', r'\bhabilidades\b', r'\bskills\b', r'\bconhecimentos\b']
+    }
     
-    # Score de Prontidão
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        score_valor = min(analysis.get('score_prontidao', 0), 10.0)  # Garantir máximo de 10
-        st.metric(
-            label="Score de Prontidão",
-            value=f"{score_valor:.1f}/10",
-            delta="Análise estatística TF-IDF"
-        )
-    
-    # Veredito de 10 segundos
-    veredito = analysis.get('veredito_10_segundos', 'Não disponível')
-    score_normalizado = min(analysis.get('score_prontidao', 0), 10.0) / 10.0  # Normalizar para 0-1
-    if score_normalizado >= 0.8:
-        st.success(f"**Veredito (10 segundos):** {veredito}")
-    elif score_normalizado >= 0.5:
-        st.warning(f"**Veredito (10 segundos):** {veredito}")
-    else:
-        st.error(f"**Veredito (10 segundos):** {veredito}")
-    
-    st.divider()
-    
-    # Diagnóstico ATS
-    st.subheader("🔍 Diagnóstico ATS (PyMuPDF)")
-    diagnostico = analysis.get('diagnostico_ats', {})
-    risco_parsing = diagnostico.get('risco_parsing', 'Não disponível')
-    
-    if risco_parsing == "Baixo":
-        st.success(f"Risco de Parsing: {risco_parsing}")
-    elif risco_parsing == "Médio":
-        st.warning(f"Risco de Parsing: {risco_parsing}")
-    else:
-        st.error(f"Risco de Parsing: {risco_parsing}")
-    
-    falhas = diagnostico.get('falhas_estruturais', [])
-    if falhas:
-        st.write("**Falhas Estruturais Detectadas:**")
-        for falha in falhas:
-            st.error(f"• {falha}")
-    else:
-        st.success("✅ Nenhuma falha estrutural crítica detectada")
-    
-    st.divider()
-    
-    # Análise de Palavras-Chave (Hard Skills)
-    st.subheader("🔑 Análise de Hard Skills")
-    palavras_chave = analysis.get('analise_palavras_chave', {})
-    
-    hard_skills_vaga = palavras_chave.get('hard_skills_vaga', [])
-    hard_skills_encontradas = palavras_chave.get('hard_skills_encontradas', [])
-    hard_skills_ausentes = palavras_chave.get('hard_skills_ausentes', [])
-    hard_skills_db_matches = palavras_chave.get('hard_skills_db_matches', [])
-    metodo_extracao = palavras_chave.get('metodo_extracao', 'desconhecido')
-    
-    # Métrica clara: X/Y Hard Skills Encontradas (Y pode variar se usar whitelist)
-    total_vaga = len(hard_skills_vaga) if hard_skills_vaga else 15
-    st.metric(
-        label="Hard Skills da Vaga",
-        value=f"{len(hard_skills_encontradas)}/{total_vaga}",
-        delta=f"{(len(hard_skills_encontradas)/total_vaga*100) if total_vaga > 0 else 0:.0f}% encontradas"
-    )
-    
-    # Indicar método de extração usado
-    if metodo_extracao == "whitelist_database":
-        st.info("📚 **Método:** Whitelist da Database (Termos técnicos validados)")
-    elif metodo_extracao == "tfidf_fallback":
-        st.info("🔍 **Método:** TF-IDF Fallback (Vaga sem skills da database)")
-    else:
-        st.warning(f"⚠️ **Método:** {metodo_extracao}")
-    
-    # Exibir TODAS as Hard Skills encontradas
-    if hard_skills_encontradas:
-        st.write(f"**{len(hard_skills_encontradas)} Hard Skills Encontradas:**")
-        for skill in hard_skills_encontradas:
-            st.success(f"✓ {skill}")
-    else:
-        st.warning("⚠ Nenhuma Hard Skill da vaga encontrada no currículo")
-    
-    # Exibir TODAS as Hard Skills ausentes (sem truncar)
-    if hard_skills_ausentes:
-        st.write(f"**{len(hard_skills_ausentes)} Hard Skills Ausentes:**")
-        for skill in hard_skills_ausentes:
-            st.warning(f"• {skill}")
-    else:
-        st.success("✅ Todas as Hard Skills da vaga estão presentes")
-    
-    # Exibir skills da database local encontradas
-    if hard_skills_db_matches:
-        st.write(f"**{len(hard_skills_db_matches)} Skills da Database Local:**")
-        for skill in hard_skills_db_matches[:20]:  # Limitar a 20 para não poluir
-            st.info(f"📚 {skill}")
-        if len(hard_skills_db_matches) > 20:
-            st.info(f"...e mais {len(hard_skills_db_matches) - 20} skills")
-    
-    orientacao = palavras_chave.get('orientacao_insercao', '')
-    if orientacao:
-        st.info(f"**Orientação para Inserção:** {orientacao}")
-    
-    st.divider()
-    
-    # Análise de Adjetivos Esponjosos
-    st.subheader("⚠️ Análise de Adjetivos Esponjosos")
-    if adjetivos_detectados:
-        st.write(f"**{len(adjetivos_detectados)} Adjetivos Esponjosos Detectados:**")
-        for adjetivo in adjetivos_detectados:
-            st.warning(f"• {adjetivo}")
-        st.info("💡 **Dica:** Substitua adjetivos genéricos por exemplos concretos de ações e resultados.")
-    else:
-        st.success("✅ Nenhum adjetivo esponjoso detectado")
+    status_secoes = {}
+    for secao, padroes in secoes_alvo.items():
+        status_secoes[secao] = any(re.search(p, texto_cv, re.IGNORECASE) for p in padroes)
+        
+    return {
+        "secoes": status_secoes,
+        "todas_presentes": status_secoes["Experiência Profissional"] and status_secoes["Formação Académica"]
+    }
 
-# Lógica principal
+def auditar_metricas_e_volume(texto_cv: str) -> Dict[str, Any]:
+    """Audita o volume de palavras e a densidade de resultados mensuráveis."""
+    palavras = texto_cv.split()
+    total_palavras = len(palavras)
+    
+    padrao_metricas = r'(\b\d+[\.,]?\d*\s?%|\bR\$\s?\d+[\d.,]*|\$\s?\d+[\d.,]*|\b\d+\s?(?:milhões|mil|k|M|bi)\b|\b\d+\s?(?:projetos|anos|clientes|sprints|pessoas|profissionais)\b)'
+    metricas_encontradas = re.findall(padrao_metricas, texto_cv, re.IGNORECASE)
+    
+    padrao_datas = r'(\b\d{2}/\d{4}\b|\b(?:Jan|Fev|Mar|Abr|Mai|Jun|Jul|Ago|Set|Out|Nov|Dez)[a-z]*\.?\s?\d{4}\b|\b\d{4}\s?[-–—]\s?(?:\d{4}|atual|presente)\b)'
+    datas_detectadas = len(re.findall(padrao_datas, texto_cv, re.IGNORECASE))
+    
+    return {
+        "total_palavras": total_palavras,
+        "volume_adequado": 350 <= total_palavras <= 1100,
+        "total_metricas": len(metricas_encontradas),
+        "datas_padronizadas": datas_detectadas >= 2
+    }
+
+def auditar_kill_questions(texto_cv: str, texto_vaga: str, base_credentials: Dict[str, Any]) -> Dict[str, Any]:
+    """Cruza credenciais mandatórias regulamentadas (CREA, CAU, OAB, etc.)."""
+    def _credential_terms(nome_oficial: str, variacoes: List[str]) -> List[str]:
+        terms = [nome_oficial, *variacoes]
+        prefixes = ('graduacao em ', 'bacharel em ', 'certificacao ', 'certificado ', 'registro no ', 'registro na ')
+        folded = _fold_accents(nome_oficial).lower()
+        for prefix in prefixes:
+            if folded.startswith(prefix):
+                remainder = _fold_accents(nome_oficial)[len(prefix):].strip(' :-')
+                if remainder:
+                    terms.append(remainder)
+        eng = re.search(r'(?i)engenharia\s+(.+)$', _fold_accents(nome_oficial))
+        if eng:
+            esp = eng.group(1).strip()
+            terms.extend([f'Engenheiro {esp}', f'Engenheira {esp}'])
+        return list(set(terms))
+
+    exigencias = []
+    status_aprovado = True
+
+    for categoria in base_credentials.get("categorias", []):
+        cat_nome = categoria.get("categoria_nome", categoria.get("categoria_id", ""))
+        for cred in categoria.get("credenciais", []):
+            nome_oficial = str(cred.get("nome_oficial", "")).strip()
+            if not nome_oficial:
+                continue
+            variacoes = [str(v).strip() for v in cred.get("siglas_ou_variacoes", []) if str(v).strip()]
+            termos_busca = _credential_terms(nome_oficial, variacoes)
+            
+            if any(_term_in_text(t, texto_vaga) for t in termos_busca):
+                evidencias = [t for t in termos_busca if _term_in_text(t, texto_cv)]
+                peso = str(cred.get("peso_eliminatorio", "")).strip()
+                atendida = bool(evidencias)
+                
+                if not atendida and peso.lower() == "alto":
+                    status_aprovado = False
+
+                exigencias.append({
+                    "nome_oficial": nome_oficial,
+                    "categoria": cat_nome,
+                    "peso_eliminatorio": peso,
+                    "status": "atendida" if atendida else "reprovada",
+                    "evidencias_cv": evidencias,
+                    "descricao_contextual": cred.get("descricao_contextual", ""),
+                })
+
+    faltantes = [item for item in exigencias if item["status"] == "reprovada"]
+    return {
+        "status_aprovado": status_aprovado,
+        "tem_exigencias": bool(exigencias),
+        "exigencias": exigencias,
+        "faltantes": faltantes,
+        "atendidas": [item for item in exigencias if item["status"] == "atendida"],
+    }
+
+def avaliar_vigor_executivo(texto_cv: str, base_action_verbs: Dict[str, Any]) -> Dict[str, Any]:
+    """Calcula o índice de vigor executivo cruzando verbos fortes contra termos passivos."""
+    categorias = base_action_verbs.get("active_verbs") or base_action_verbs.get("categories") or []
+    verbos_encontrados = []
+    
+    for categoria in categorias:
+        cat_nome = categoria.get("category_name", categoria.get("category_id", ""))
+        for verb in categoria.get("verbs", []):
+            inf = str(verb.get("verb_infinitive", "")).strip()
+            conj = str(verb.get("conjugated_form", "")).strip()
+            forms = [f for f in (inf, conj) if f]
+            hits = sum(_count_whole_word(f, texto_cv) for f in forms)
+            if hits > 0:
+                verbos_encontrados.append({
+                    "verbo": conj if conj and _term_in_text(conj, texto_cv) else inf,
+                    "infinitivo": inf,
+                    "ocorrencias": hits,
+                    "categoria": cat_nome
+                })
+
+    alertas = []
+    for alerta in base_action_verbs.get("weak_terms_alerts", []):
+        termo = str(alerta.get("weak_term", "")).strip()
+        if not termo:
+            continue
+        variantes = [p.strip() for p in re.split(r"\s*/\s*", termo) if p.strip()]
+        hits = sum(_count_whole_word(v, texto_cv) for v in variantes)
+        if hits > 0:
+            alertas.append({
+                "weak_term": termo,
+                "ocorrencias": hits,
+                "issue_identified": alerta.get("issue_identified", ""),
+                "suggested_replacements": alerta.get("suggested_replacements", [])
+            })
+
+    unique_verbs = len({item["infinitivo"] for item in verbos_encontrados})
+    weak_total = sum(item["ocorrencias"] for item in alertas)
+    
+    score = int(max(0, min(100, 20 + (unique_verbs * 8) - (weak_total * 12))))
+
+    return {
+        "score_vigor": score,
+        "verbos_encontrados": sorted(verbos_encontrados, key=lambda x: x["ocorrencias"], reverse=True),
+        "alertas_termos_fracos": sorted(alertas, key=lambda x: x["ocorrencias"], reverse=True),
+        "total_verbos_unicos": unique_verbs,
+        "total_ocorrencias_fracas": weak_total
+    }
+
+def detect_fluffy_adjectives(resume_text: str, blacklist: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Deteta clichês e buzzwords devolvendo justificativa e sugestão de métrica."""
+    detected = []
+    for categoria in blacklist.get("categorias", []):
+        for termo_data in categoria.get("termos", []):
+            canonical = str(termo_data.get("termo", "")).strip()
+            if not canonical:
+                continue
+            variants = [canonical] + [str(item).strip() for item in termo_data.get("variacoes", []) if str(item).strip()]
+            total = 0
+            matched_form = canonical
+            for variant in variants:
+                hits = _count_whole_word(variant, resume_text)
+                if hits > 0 and total == 0:
+                    matched_form = variant
+                total += hits
+            if total > 0:
+                detected.append({
+                    "termo_encontrado": matched_form,
+                    "ocorrencias": total,
+                    "justificativa": termo_data.get("justificativa", ""),
+                    "substituicao_sugerida": termo_data.get("substituicao_sugerida", "")
+                })
+
+    detected.sort(key=lambda x: x["ocorrencias"], reverse=True)
+    return detected
+
+def extrair_skills_vaga_ranqueadas(texto_vaga: str, texto_cv: str, catalogo_skills: List[str]) -> List[Dict[str, Any]]:
+    """Extrai hard skills da vaga ranqueando-as pela frequência em que aparecem no anúncio."""
+    candidatos_vaga = [skill for skill in catalogo_skills if is_valid_skill_match(skill, texto_vaga)]
+    candidatos_vaga = deduplicate_skills_by_subsumption(candidatos_vaga)
+    
+    skills_analise = []
+    for skill in candidatos_vaga:
+        qtd_vaga = _count_whole_word(skill, texto_vaga)
+        qtd_cv = _count_whole_word(skill, texto_cv)
+        
+        impacto = "Alto" if qtd_vaga >= 3 else ("Médio" if qtd_vaga == 2 else "Baixo")
+        skills_analise.append({
+            "skill": skill,
+            "frequencia_vaga": qtd_vaga,
+            "frequencia_cv": qtd_cv,
+            "presente_no_cv": qtd_cv > 0,
+            "impacto": impacto
+        })
+        
+    skills_analise.sort(key=lambda x: (x["frequencia_vaga"], x["frequencia_cv"]), reverse=True)
+    return skills_analise
+
+# ==============================================================================
+# PIPELINE ESTATÍSTICO GERAL E CÁLCULO DE SCORE
+# ==============================================================================
+def processar_diagnostico_completo(
+    resume_text: str,
+    job_desc: str,
+    pdf_metadata: Dict[str, Any],
+    credentials: Dict[str, Any],
+    action_verbs: Dict[str, Any],
+    blacklist: Dict[str, Any]
+) -> Dict[str, Any]:
+    
+    # 1. Auditorias estruturais e comportamentais
+    contatos = auditar_contato_e_presenca(resume_text)
+    secoes = auditar_secoes_cv(resume_text)
+    metricas = auditar_metricas_e_volume(resume_text)
+    kill_q = auditar_kill_questions(resume_text, job_desc, credentials)
+    vigor = avaliar_vigor_executivo(resume_text, action_verbs)
+    buzzwords = detect_fluffy_adjectives(resume_text, blacklist)
+    
+    # 2. Similaridade Cosseno TF-IDF
+    try:
+        vectorizer = TfidfVectorizer(stop_words=PT_STOPWORDS_EXTENDED, ngram_range=(1, 2), max_features=100)
+        tfidf_matrix = vectorizer.fit_transform([resume_text, job_desc])
+        similarity = float(cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0])
+    except Exception:
+        similarity = 0.0
+
+    # 3. Hard skills ranqueadas por repetição na vaga
+    skills_ranqueadas = extrair_skills_vaga_ranqueadas(job_desc, resume_text, HARD_SKILLS_DATABASE)
+    
+    # Cálculo ponderado da proporção de skills
+    if skills_ranqueadas:
+        pontos_skills = sum(
+            (3 if s["impacto"] == "Alto" else (2 if s["impacto"] == "Médio" else 1))
+            for s in skills_ranqueadas if s["presente_no_cv"]
+        )
+        total_pontos_possiveis = sum(
+            (3 if s["impacto"] == "Alto" else (2 if s["impacto"] == "Médio" else 1))
+            for s in skills_ranqueadas
+        )
+        prop_skills = pontos_skills / total_pontos_possiveis if total_pontos_possiveis > 0 else 0.0
+    else:
+        prop_skills = 0.0
+
+    # 4. Cálculo do Score de Prontidão (0 a 10)
+    score_skills = prop_skills * 4.5                                      # 45% peso
+    score_similaridade = similarity * 1.5                                  # 15% peso
+    score_vigor_peso = (vigor["score_vigor"] / 100.0) * 1.5                # 15% peso
+    score_metricas = min(1.0, (metricas["total_metricas"] / 5.0)) * 1.0    # 10% peso
+    score_contato = (sum([contatos["email"], contatos["telefone"], contatos["web"], contatos["localizacao"]]) / 4.0) * 0.75 # 7.5% peso
+    score_secoes = (sum(secoes["secoes"].values()) / 4.0) * 0.75          # 7.5% peso
+
+    score_final = score_skills + score_similaridade + score_vigor_peso + score_metricas + score_contato + score_secoes
+
+    # BLOQUEIO DETERMINÍSTICO: Se reprovou em Kill Question de peso ALTO, trava o score em no máximo 3.0
+    status_eliminado = False
+    if kill_q["faltantes"] and not kill_q["status_aprovado"]:
+        score_final = min(score_final, 3.0)
+        status_eliminado = True
+
+    return {
+        "score_final": min(score_final, 10.0),
+        "status_eliminado": status_eliminado,
+        "similaridade_tfidf": similarity,
+        "contatos": contatos,
+        "secoes": secoes,
+        "metricas": metricas,
+        "kill_questions": kill_q,
+        "vigor": vigor,
+        "buzzwords": buzzwords,
+        "skills_ranqueadas": skills_ranqueadas,
+        "pdf_metadata": pdf_metadata
+    }
+
+# ==============================================================================
+# INTERFACE STREAMLIT
+# ==============================================================================
+st.sidebar.title("ResumePilot AI")
+st.sidebar.markdown("### Motor de Triagem Determinístico (ATS)")
+
+uploaded_file = st.sidebar.file_uploader("Upload do Currículo (PDF)", type=['pdf'])
+job_description = st.sidebar.text_area("Descrição da Vaga", height=300, placeholder="Cole a descrição da vaga aqui...")
+analyze_button = st.sidebar.button("Analisar Currículo", type="primary")
+
 if analyze_button:
     if not uploaded_file:
-        st.sidebar.error("Por favor, faça upload de um currículo em PDF.")
+        st.sidebar.error("Por favor, carregue um currículo em formato PDF.")
     elif not job_description:
-        st.sidebar.error("Por favor, insira a descrição da vaga.")
+        st.sidebar.error("Por favor, cole a descrição da vaga.")
     else:
-        # Carregar bases de dados
         blacklist = load_blacklist_adjetivos()
-        taxonomy = load_taxonomy()
         credentials = load_credentials_database()
-        
-        # Extrair texto do PDF (análise local)
-        with st.spinner("Extraindo texto do PDF e avaliando estrutura ATS..."):
-            resume_text, pdf_metadata = extract_text_from_pdf(uploaded_file)
-        
-        if resume_text:
-            # Detectar adjetivos esponjosos
-            adjetivos_detectados = detect_fluffy_adjectives(resume_text, blacklist)
-            
-            # Análise estatística local
-            with st.spinner("Realizando Análise Estatística (TF-IDF)..."):
-                analysis = analyze_resume_stat(resume_text, job_description, pdf_metadata)
-            
-            if analysis:
-                # Exibir resultados
-                display_results(analysis, adjetivos_detectados)
+        action_verbs = load_action_verbs()
+
+        with st.spinner("A processar documento PDF e a cruzar dados..."):
+            resume_text, pdf_meta = extract_text_from_pdf(uploaded_file)
+
+        if not resume_text.strip():
+            st.error("Não foi possível extrair texto do PDF. O documento pode ser uma imagem digitalizada.")
+        else:
+            diag = processar_diagnostico_completo(
+                resume_text, job_description, pdf_meta, credentials, action_verbs, blacklist
+            )
+
+            # Cabeçalho de Resultados
+            st.header("📊 Diagnóstico Global de Triagem ATS")
+
+            col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+            with col_s1:
+                st.metric("Score de Compatibilidade", f"{diag['score_final']:.1f}/10")
+            with col_s2:
+                total_k = len(diag['skills_ranqueadas'])
+                enc_k = sum(1 for s in diag['skills_ranqueadas'] if s['presente_no_cv'])
+                st.metric("Hard Skills da Vaga", f"{enc_k}/{total_k}")
+            with col_s3:
+                st.metric("Score de Vigor", f"{diag['vigor']['score_vigor']}/100")
+            with col_s4:
+                st.metric("Similaridade TF-IDF", f"{diag['similaridade_tfidf']*100:.0f}%")
+
+            if diag["status_eliminado"]:
+                st.error("🚨 **STATUS: DESCLASSIFICAÇÃO IMINENTE NO ATS** — O currículo não apresenta as credenciais ou conselhos obrigatórios (Kill Questions) exigidos pela vaga.")
+            elif diag["score_final"] >= 8.0:
+                st.success("✅ **STATUS: PRONTO PARA APLICAR** — Elevada aderência técnica, estrutural e semântica com a vaga.")
+            elif diag["score_final"] >= 5.0:
+                st.warning("⚠️ **STATUS: REQUER AJUSTES** — O perfil possui sinergia, mas faltam termos técnicos críticos ou métricas de impacto.")
+            else:
+                st.error("❌ **STATUS: ALTO RISCO DE REPROVAÇÃO** — Distante dos requisitos da vaga ou com falhas de formatação/conteúdo.")
+
+            st.divider()
+
+            # Estrutura em Abas
+            tab_skills, tab_knockout, tab_recruiter, tab_buzzwords, tab_parsing = st.tabs([
+                "🔑 Comparação de Skills",
+                "🚨 Kill Questions (Eliminatório)",
+                "💡 Dicas de Recrutador",
+                "🧹 Termos Vagos & Buzzwords",
+                "📄 Estrutura do PDF"
+            ])
+
+            # ABA 1: SKILLS COM COMPARAÇÃO DE FREQUÊNCIA
+            with tab_skills:
+                st.subheader("Correspondência de Hard Skills com a Vaga")
+                if not diag["skills_ranqueadas"]:
+                    st.info("Nenhuma hard skill da base técnica foi localizada no texto da vaga.")
+                else:
+                    # Cabeçalho da tabela
+                    c1, c2, c3, c4 = st.columns([3, 2, 2, 2])
+                    c1.markdown("**Competência (Hard Skill)**")
+                    c2.markdown("**Frequência na Vaga**")
+                    c3.markdown("**Status no CV**")
+                    c4.markdown("**Impacto no Score**")
+                    st.divider()
+
+                    for item in diag["skills_ranqueadas"]:
+                        col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+                        col1.write(f"**{item['skill']}**")
+                        col2.write(f"{item['frequencia_vaga']}x no anúncio")
+                        if item["presente_no_cv"]:
+                            col3.success(f"✓ Presente ({item['frequencia_cv']}x)")
+                        else:
+                            col3.error("✗ Ausente")
+                        
+                        if item["impacto"] == "Alto":
+                            col4.markdown("🔴 **Alto**")
+                        elif item["impacto"] == "Médio":
+                            col4.markdown("🟡 **Médio**")
+                        else:
+                            col4.markdown("⚪ Baixo")
+
+            # ABA 2: KILL QUESTIONS
+            with tab_knockout:
+                st.subheader("Auditoria de Requisitos Mandatórios (Kill Questions)")
+                kq = diag["kill_questions"]
+                if not kq["tem_exigencias"]:
+                    st.success("✅ Nenhuma credencial mandatória estrita (CREA, CAU, OAB, etc.) foi identificada nesta vaga.")
+                else:
+                    if kq["faltantes"]:
+                        st.error("Foram identificadas credenciais mandatórias ausentes no seu currículo:")
+                        for f in kq["faltantes"]:
+                            st.markdown(f"- **{f['nome_oficial']}** ({f['categoria']}) — *Exigência de Peso {f['peso_eliminatorio']}*")
+                            if f["descricao_contextual"]:
+                                st.caption(f["descricao_contextual"])
+                    if kq["atendidas"]:
+                        st.success("Credenciais identificadas com sucesso no currículo:")
+                        for a in kq["atendidas"]:
+                            st.markdown(f"- ✓ **{a['nome_oficial']}**")
+
+            # ABA 3: DICAS DE RECRUTADOR (RECRUITER TIPS)
+            with tab_recruiter:
+                st.subheader("Auditoria Estrutural de Recrutador")
+
+                # Dados de Contato
+                st.markdown("#### 1. Informações de Contato e Presença Web")
+                ct = diag["contatos"]
+                c_ok1, c_ok2, c_ok3, c_ok4 = st.columns(4)
+                c_ok1.write(f"{'✅' if ct['email'] else '❌'} E-mail")
+                c_ok2.write(f"{'✅' if ct['telefone'] else '❌'} Telefone")
+                c_ok3.write(f"{'✅' if ct['web'] else '❌'} LinkedIn / GitHub")
+                c_ok4.write(f"{'✅' if ct['localizacao'] else '❌'} Localização / Cidade")
+
+                st.divider()
+
+                # Secções do Currículo
+                st.markdown("#### 2. Cabeçalhos de Secções Obrigatórias")
+                sec = diag["secoes"]["secoes"]
+                s_ok1, s_ok2, s_ok3, s_ok4 = st.columns(4)
+                s_ok1.write(f"{'✅' if sec['Resumo Profissional'] else '❌'} Resumo")
+                s_ok2.write(f"{'✅' if sec['Experiência Profissional'] else '❌'} Experiência")
+                s_ok3.write(f"{'✅' if sec['Formação Académica'] else '❌'} Formação")
+                s_ok4.write(f"{'✅' if sec['Competências Técnicas'] else '❌'} Competências")
+
+                st.divider()
+
+                # Métricas e Palavras
+                st.markdown("#### 3. Métricas de Impacto e Volume")
+                met = diag["metricas"]
+                m_c1, m_c2, m_c3 = st.columns(3)
+                with m_c1:
+                    status_w = "✅ Adequado" if met["volume_adequado"] else "⚠️ Ajustar"
+                    st.metric("Contagem de Palavras", f"{met['total_palavras']} palavras", delta=status_w)
+                    st.caption("Ideal: entre 350 e 1.100 palavras.")
+                with m_c2:
+                    st.metric("Resultados Mensuráveis", f"{met['total_metricas']} identificados")
+                    st.caption("Ideal: no mínimo 5 métricas numéricas (% ou valores monetários).")
+                with m_c3:
+                    st.metric("Padrão de Datas", "✅ Correto" if met["datas_padronizadas"] else "⚠️ Inconsistente")
+                    st.caption("Datas estruturadas no padrão MM/AAAA ou AAAA - AAAA.")
+
+                st.divider()
+
+                # Vigor Executivo
+                st.markdown("#### 4. Vigor Executivo e Termos Passivos")
+                vg = diag["vigor"]
+                if vg["alertas_termos_fracos"]:
+                    st.warning(f"Foram identificadas {vg['total_ocorrencias_fracas']} ocorrências de linguagem passiva/subalterna:")
+                    for alerta in vg["alertas_termos_fracos"]:
+                        substitutos = ", ".join(alerta.get("suggested_replacements", []))
+                        st.markdown(f"- **'{alerta['weak_term']}'** ({alerta['ocorrencias']}x): *{alerta['issue_identified']}*")
+                        if substitutos:
+                            st.caption(f"💡 Sugestão de substituição por verbos fortes: **{substitutos}**")
+                else:
+                    st.success("✅ Excelente protagonismo: nenhum termo passivo identificado.")
+
+            # ABA 4: ADJETIVOS ESPONJOSOS (BUZZWORDS)
+            with tab_buzzwords:
+                st.subheader("Adjetivos Subjetivos e Buzzwords Detetadas")
+                bz = diag["buzzwords"]
+                if not bz:
+                    st.success("✅ Nenhum clichê corporativo ou adjetivo esponjoso detetado. Discurso limpo e factual.")
+                else:
+                    st.write(f"Foram detetados **{len(bz)} termos vagos**. O ATS penaliza autoelogios que carecem de evidências práticas:")
+                    for adjetivo in bz:
+                        with st.expander(f"⚠️ '{adjetivo['termo_encontrado']}' ({adjetivo['ocorrencias']}x no documento)"):
+                            st.markdown(f"**Por que o ATS desvaloriza:** {adjetivo['justificativa']}")
+                            st.info(f"**Como reescrever:** {adjetivo['substituicao_sugerida']}")
+
+            # ABA 5: PARSING DO PDF
+            with tab_parsing:
+                st.subheader("Auditoria de Legibilidade do PDF (PyMuPDF)")
+                meta = diag["pdf_metadata"]
+                p_c1, p_c2 = st.columns(2)
+                p_c1.metric("Risco de Parsing", meta.get("risco_parsing", "Baixo"))
+                p_c2.metric("Páginas Processadas", f"{meta.get('paginas_com_texto', 0)}/{meta.get('total_paginas', 0)}")
+                
+                if meta.get("falhas_estruturais"):
+                    st.warning("Falhas de layout detetadas:")
+                    for f in meta["falhas_estruturais"]:
+                        st.write(f"- {f}")
+                else:
+                    st.success("✅ Estrutura de leitura limpa. O documento é facilmente legível por leitores ATS.")
 else:
-    # Tela inicial
-    st.title("🚀 ResumePilot")
+    st.title("🚀 ResumePilot AI")
     st.markdown("""
-    ### Bem-vindo ao ResumePilot!
+    ### Diagnóstico Determinístico de Currículos para ATS
     
-    Este é um sistema de análise de currículos baseado em NLP estatístico local:
+    Este motor simula a triagem de um Applicant Tracking System (ATS) corporativo de última geração:
     
-    - ✅ **Análise ATS Local (PyMuPDF)**: Avaliação estrutural do PDF
-    - ✅ **Análise Estatística (TF-IDF)**: Extração inteligente de palavras-chave com n-gramas
-    - ✅ **Database Local**: Cross-check com base de Hard Skills (1000+ termos)
-    - ✅ **Blacklist de Adjetivos**: Detecção de clichês e termos esponjosos
-    - ✅ **Termos Compostos**: Captura bigramas como 'gestão financeira' e 'engenharia civil'
-    - ✅ **Score de Prontidão**: Nota baseada em proporção de skills e similaridade de texto
-    - ✅ **100% Local**: Rápido, sem API Key, sem custos
+    - **100% Determinístico e Local:** Sem custos de API, sem chamadas de rede e sem alucinações.
+    - **Auditoria de Contactos e Cabeçalho:** Validação de e-mail, telefone, links e localização.
+    - **Frequência e Impacto de Skills:** Compara a quantidade de menções de cada competência entre a vaga e o currículo.
+    - **Kill Questions:** Verificação eliminatória de conselhos de classe e requisitos legais (CREA, CAU, OAB, etc.).
+    - **Vigor Executivo vs. Linguagem Passiva:** Identificação de clichês e cálculo de protagonismo.
     
-    **Como usar:**
-    1. Faça upload do seu currículo em PDF na barra lateral
-    2. Cole a descrição da vaga que você deseja aplicar
-    3. Clique em "Analisar Currículo"
-    
-    🔒 **Privacidade:** Toda a análise é feita localmente. Nenhum dado é enviado para servidores externos.
+    Envie o seu currículo em PDF na barra lateral, cole a vaga desejada e clique em **Analisar Currículo**.
     """)
